@@ -1,0 +1,13 @@
+[Unit]
+Description=MQTT System Monitoring Service
+After=network.target
+
+[Service]
+User=pi
+WorkingDirectory=/path/to/your/directory/mqtt_system_monitoring
+ExecStart=/path/to/your/directory/mqtt_system_monitoring/venv/bin/python -m monitoring_service.main
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

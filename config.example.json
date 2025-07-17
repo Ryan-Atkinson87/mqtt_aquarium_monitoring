@@ -1,0 +1,6 @@
+{
+  "poll_period": "your_poll_period",
+  "device_name": "your_device_name",
+  "mount_path": "/",
+  "log_level": "INFO"
+}

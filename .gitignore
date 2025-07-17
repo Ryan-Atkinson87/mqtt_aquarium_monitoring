@@ -1,0 +1,44 @@
+# Python virtual environments
+venv/
+
+# IDE/editor files
+.idea/
+.vs/
+*.code-workspace
+
+# Python cache
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*.pyo
+
+# Log files
+log/
+*.log
+
+# Environment and config
+.env
+config.json
+
+# Systemd / setup scripts
+mqtt_system_monitoring.service
+setup.sh
+start_monitoring.sh
+.deps_installed
+
+# Miscellaneous OS files
+.DS_Store
+
+# PyCharm & coverage tools
+*.iml
+coverage/
+htmlcov/
+.tox/
+
+# Build/dist artifacts
+dist/
+build/
+*.egg-info/
+
+# Project metadata/info (check this one)
+.info/
