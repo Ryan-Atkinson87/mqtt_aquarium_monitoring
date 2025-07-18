@@ -17,9 +17,6 @@ Usage:
     telemetry, errors = collector.get_telemetry()
 """
 
-import psutil
-import subprocess
-
 
 class TelemetryCollector:
     """
@@ -27,78 +24,69 @@ class TelemetryCollector:
     Uses get_telemetry to collect telemetry from the Raspberry Pi in the form of a
     dictionary of telemetry data.
     """
-    def __init__(self, mount_path="/"):
+
+    def __init__(self, logger, mount_path="/"):
         self.mount_path = mount_path
+        self.logger = logger
 
-    @staticmethod
-    def _get_cpu_usage():
-        cpu_usage = psutil.cpu_percent(interval=1)
-        return cpu_usage
-
-    @staticmethod
-    def _get_cpu_temp():
-        with open("/sys/class/thermal/thermal_zone0/temp", "r") as f:
-            temp_str = f.readline()
-            return float(temp_str) / 1000.0
-
-    @staticmethod
-    def _get_gpu_temp():
-        vcgencmd_path = "/usr/bin/vcgencmd"
-        result = subprocess.run([vcgencmd_path, 'measure_temp'], capture_output=True, text=True)
-        if result.returncode == 0:
-            temp_str = result.stdout.strip()
-            temp_value = temp_str.split('=')[1].replace("'C", "")
-            return float(temp_value)
-        else:
+    def _get_temperature(self):
+        # TODO: create logic for reading from temperature sensor
+        try:
+            return 25
+        except Exception as e:
+            self.logger.error(f"Error getting aquarium temperature: {e}")
             return None
 
-    @staticmethod
-    def _get_mem_usage():
-        mem_usage = psutil.virtual_memory().percent
-        return mem_usage
+    def _get_water_level(self):
+        # TODO: create logic for reading from water level sensor
+        try:
+            return -10
+        except Exception as e:
+            self.logger.error(f"Error getting water level: {e}")
+            return None
 
-    def _get_disk_usage(self):
-        # TODO: support configurable mount point
-        disk_usage = psutil.disk_usage(self.mount_path).percent
-        return disk_usage
+    def _get_air_temp(self):
+        # TODO: create logic for reading from dht22 sensor
+        try:
+            return 25
+        except Exception as e:
+            self.logger.error(f"Error getting air temperature: {e}")
+            return None
 
-    def get_telemetry(self):
-        # TODO: move error logging into this function, remove from agent.py
+    def _get_air_humidity(self):
+        # TODO: create logic for reading from dht22 sensor
+        try:
+            return 50
+        except Exception as e:
+            self.logger.error(f"Error getting air humidity: {e}")
+            return None
+
+    def _get_water_flow_rate(self):
+        # TODO: create logic for reading from flow sensor
+        try:
+            return 200
+        except Exception as e:
+            self.logger.error(f"Error getting water flow rate: {e}")
+            return None
+
+    def _get_turbidity(self):
+        # TODO: create logic for reading from turbidity sensor
+        try:
+            return 5
+        except Exception as e:
+            self.logger.error(f"Error getting turbidity: {e}")
+            return None
+
+    def as_dict(self):
         """
-        Collects system metrics from a Raspberry Pi.
-        :return: dictionary of telemetry data, list of errors encountered
+        Return a dictionary containing the aquarium telemetry data.
+
+        :return: dictionary containing the aquarium telemetry data.
         """
-        data = {}
-        errors = []
+        temperature = self._get_temperature()
+        water_level = self._get_water_level()
 
-        try:
-            data['cpu_usage'] = self._get_cpu_usage()
-        except Exception as e:
-            errors.append(f"Error getting cpu usage: {e}")
-            data['cpu_usage'] = None
-
-        try:
-            data['cpu_temp'] = self._get_cpu_temp()
-        except Exception as e:
-            errors.append(f"Error getting cpu temp: {e}")
-            data['cpu_temp'] = None
-
-        try:
-            data['gpu_temp'] = self._get_gpu_temp()
-        except Exception as e:
-            errors.append(f"Error getting gpu temp: {e}")
-            data['gpu_temp'] = None
-
-        try:
-            data['ram_usage'] = self._get_mem_usage()
-        except Exception as e:
-            errors.append(f"Error getting memory usage: {e}")
-            data['ram_usage'] = None
-
-        try:
-            data['disk_usage'] = self._get_disk_usage()
-        except Exception as e:
-            errors.append(f"Error getting disk usage: {e}")
-            data['disk_usage'] = None
-
-        return data, errors
+        return {
+            "temperature": temperature,
+            "water_level": water_level,
+        }
