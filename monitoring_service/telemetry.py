@@ -17,7 +17,10 @@ Usage:
     telemetry, errors = collector.get_telemetry()
 """
 
+
+import glob
 import logging
+import os
 
 try:
     import RPi.GPIO as GPIO
@@ -34,16 +37,15 @@ class TelemetryCollector:
     dictionary of telemetry data.
     """
 
-    def __init__(self, temperature_pin=None, logger=None, mount_path="/"):
+    def __init__(self, temperature_sensor=None, logger=None, mount_path="/"):
         self.mount_path = mount_path
         self.logger = logger or logging.getLogger(__name__)
-        self.temperature_pin = temperature_pin
+        self.temperature_sensor = temperature_sensor
 
-    def _get_temperature(self, temperature_pin):
-        # TODO: create logic for reading from temperature sensor
+    def _get_temperature(self):
         try:
-            return GPIO.input(temperature_pin)
-        except RuntimeError as e:
+            return self.temperature_sensor.read_temp()
+        except Exception as e:
             self.logger.error(f"Error getting aquarium temperature: {e}")
             return None
 
@@ -108,3 +110,4 @@ class TelemetryCollector:
             "water_flow_rate": water_flow_rate,
             "turbidity": turbidity,
         }
+

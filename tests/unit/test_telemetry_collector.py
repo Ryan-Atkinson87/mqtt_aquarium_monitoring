@@ -1,25 +1,36 @@
 import pytest
-from unittest.mock import patch
+from unittest.mock import mock_open,patch
 from monitoring_service.telemetry import TelemetryCollector
+from monitoring_service.sensors.ds18b20 import DS18B20Sensor
 
 
 @pytest.fixture
 def collector():
-    return TelemetryCollector(temperature_pin=17, mount_path="/")
+    sensor = DS18B20Sensor()
+    return TelemetryCollector(temperature_sensor=sensor,mount_path="/")
 
 
 # _get_temperature tests
-@patch("monitoring_service.telemetry.GPIO.input", return_value=25.0)
-def test_get_temperature_returns_valid_float(mock_gpio, collector):
-    result = collector._get_temperature(temperature_pin=4)
+mock_data = "6a 01 4b 46 7f ff 0c 10 5e : crc=5e YES\n6a 01 4b 46 7f ff 0c 10 5e t=22625\n"
+
+
+@patch("builtins.open", new_callable=mock_open, read_data=mock_data)
+def test_get_temperature_reads_file_correctly(mock_file):
+    with open("fake/path", "r") as f:
+        lines = f.readlines()
+    assert lines == ["6a 01 4b 46 7f ff 0c 10 5e : crc=5e YES\n", "6a 01 4b 46 7f ff 0c 10 5e t=22625\n"]
+
+@patch("monitoring_service.sensors.ds18b20.DS18B20Sensor.read_temp", return_value=25.0)
+def test_get_temperature_returns_valid_float(mock_temp, collector):
+    result = collector._get_temperature()
     assert isinstance(result, float)
     assert 12.0 <= result <= 38.0
 
 
-@patch("monitoring_service.telemetry.GPIO.input", side_effect=RuntimeError("GPIO failure"))
-def test_get_temperature_gpio_fails_gracefully(mock_gpio, collector, caplog):
+@patch("monitoring_service.sensors.ds18b20.DS18B20Sensor.read_temp", side_effect=RuntimeError("No DS18B20 sensor found."))
+def test_get_temperature_gpio_fails_gracefully(mock_sensor, collector, caplog):
     with caplog.at_level("ERROR"):
-        result = collector._get_temperature(temperature_pin=4)
+        result = collector._get_temperature()
         assert "Error getting aquarium temperature" in caplog.text
         assert result is None
 
