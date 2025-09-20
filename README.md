@@ -19,21 +19,44 @@ structured for maintainability and extensibility, with a focus on clean code, un
 - Easily configurable via `.env` and `config.json`
 - Production-ready with systemd service example
 
+## Sensor Interface Spec
+
+Full details in docs/SENSOR_INTERFACE.md
+
+
 ## Project Structure
 
 ```
 mqtt_aquarium_monitoring/
+├── docs/
+│   └── SENSOR_INTERFACE.md
 ├── monitoring_service/
+│   ├── sensors/
+│   │   └── ds18b20.py
+│   ├── __init__.py
 │   ├── agent.py
 │   ├── attributes.py
 │   ├── config_loader.py
 │   ├── logging_setup.py
+│   ├── main.py
 │   ├── telemetry.py
 │   └── TBClientWrapper.py
 ├── tests/
-│   └── test_*.py
-├── config.json
+│   ├── hardware/
+│   │   ├── __init__.py
+│   │   └── test_hardware_telemetry_collector.py
+│   ├── unit/
+│   │   ├── __init__.py
+│   │   ├── test_attributes.py
+│   │   ├── test_config_loader.py
+│   │   ├── test_tbclientwrapper.py
+│   │   └── test_telemetry_collector.py
+│   └── __init__.py
 ├── .env
+├── config.example.json
+├── config.json
+├── mqtt_aquarium_monitoring_example.service
+├── README.md
 └── requirements.txt
 ```
 
