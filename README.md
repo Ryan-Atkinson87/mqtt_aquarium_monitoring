@@ -32,7 +32,8 @@ mqtt_aquarium_monitoring/
 │   └── SENSOR_INTERFACE.md
 ├── monitoring_service/
 │   ├── sensors/
-│   │   └── ds18b20.py
+│   │   ├── ds18b20.py
+│   │   └── factory.py
 │   ├── __init__.py
 │   ├── agent.py
 │   ├── attributes.py

@@ -17,6 +17,7 @@ It returns **domain data**, not transport payloads.
 ```kind:``` category (e.g., temperature, humidity, flow).
 
 ```units:``` string (e.g., C, %, L/h) — for dashboards and sanity checks.
+
 ```read():``` returns either:
 - a single value (float/int/bool), or
 - a dict of values (for multi-metric sensors like DHT22: {"air_temperature": 
