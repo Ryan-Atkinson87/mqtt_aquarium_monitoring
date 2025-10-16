@@ -1,18 +1,24 @@
+# ds18b20.py
+
 import glob
+import os
+from monitoring_service.sensors.base import BaseSensor
 
 class DS18B20ReadError(Exception):
     """Raised when the DS18B20 sensor fails to return a valid reading."""
     pass
 
-class DS18B20Sensor:
+class DS18B20Sensor(BaseSensor):
     """
     # TODO: Expand on this doc string,class docstring → describe parameters: sensor_id, base_path, kind, units.
     Handles reading from the DS18B20 sensor.
     """
+    REQUIRED_ANY_OF = [{"id"}, {"path"}]
+    ACCEPTED_KWARGS = {"id", "path"}
 
-    def __init__(self, sensor_id=None, base_path=None, kind="Temperature", units="C"):
-        self.sensor_id = sensor_id
-        self.base_dir = base_path
+    def __init__(self, *, id: str | None = None, path: str | None = None, kind="Temperature", units="C"):
+        self.sensor_id = id
+        self.base_dir = path
         self.sensor_name = "ds18b20"
         self.sensor_kind = kind
         self.sensor_units = units
@@ -33,12 +39,14 @@ class DS18B20Sensor:
 
     def _get_device_file(self):
         if self.sensor_id:
-            device_file = f"{self.base_dir}{self.sensor_id}/w1_slave"
+            # Ensure base_dir exists and build path
+            device_file = os.path.join(self.base_dir, self.sensor_id, "w1_slave")
         else:
-            device_folders = glob.glob(self.base_dir + '28-*')
+            # Auto-discover the first DS18B20 if no id provided
+            device_folders = glob.glob(os.path.join(self.base_dir, "28-*"))
             if not device_folders:
                 raise DS18B20ReadError("No DS18B20 sensor found.")
-            device_file = f"{device_folders[0]}/w1_slave"
+            device_file = os.path.join(device_folders[0], "w1_slave")
 
         return device_file
 

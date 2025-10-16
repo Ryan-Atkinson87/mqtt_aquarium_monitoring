@@ -1,6 +1,8 @@
 """
 telemetry.py
 
+# TODO: Update this doc string
+
 Provides the TelemetryCollector class, which gathers system metrics from a
 Raspberry Pi or other Linux-based device. These metrics include CPU usage,
 CPU temperature, GPU temperature, RAM usage, and disk usage.
@@ -19,8 +21,13 @@ Usage:
 
 
 import glob
-import logging
 import os
+
+# Set up logging
+import logging
+from monitoring_service import PACKAGE_LOGGER_NAME
+logger = logging.getLogger(f"{PACKAGE_LOGGER_NAME}.telemetry")
+
 
 try:
     import RPi.GPIO as GPIO
@@ -39,12 +46,12 @@ class TelemetryCollector:
 
     def __init__(self, temperature_sensor=None, logger=None, mount_path="/"):
         self.mount_path = mount_path
-        self.logger = logger or logging.getLogger(__name__)
+        self.logger = logger or logging.getLogger(f"{PACKAGE_LOGGER_NAME}.telemetry")
         self.temperature_sensor = temperature_sensor
 
     def _get_temperature(self):
         try:
-            return self.temperature_sensor.read_temp()
+            return self.temperature_sensor.read()
         except Exception as e:
             self.logger.error(f"Error getting aquarium temperature: {e}")
             return None
