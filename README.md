@@ -23,7 +23,6 @@ structured for maintainability and extensibility, with a focus on clean code, un
 
 Full details in docs/SENSOR_INTERFACE.md
 
-
 ## Project Structure
 
 ```
@@ -31,7 +30,12 @@ mqtt_aquarium_monitoring/
 ├── docs/
 │   └── SENSOR_INTERFACE.md
 ├── monitoring_service/
+│   ├── exceptions/
+│   │   ├── __init__.py
+│   │   └── factory_exceptions.py
 │   ├── sensors/
+│   │   ├── __init__.py
+│   │   ├── base.py
 │   │   ├── ds18b20.py
 │   │   └── factory.py
 │   ├── __init__.py
@@ -40,8 +44,8 @@ mqtt_aquarium_monitoring/
 │   ├── config_loader.py
 │   ├── logging_setup.py
 │   ├── main.py
-│   ├── telemetry.py
-│   └── TBClientWrapper.py
+│   ├── TBClientWrapper.py
+│   └── telemetry.py
 ├── tests/
 │   ├── hardware/
 │   │   ├── __init__.py
@@ -50,6 +54,7 @@ mqtt_aquarium_monitoring/
 │   │   ├── __init__.py
 │   │   ├── test_attributes.py
 │   │   ├── test_config_loader.py
+│   │   ├── test_factory_build.py
 │   │   ├── test_tbclientwrapper.py
 │   │   └── test_telemetry_collector.py
 │   └── __init__.py
@@ -74,18 +79,17 @@ mqtt_aquarium_monitoring/
 
 1. Clone the repository:
 
-```bash
-git clone https://github.com/Ryan-Atkinson87/mqtt_aquarium_monitoring.git mqtt_aquarium_monitoring
-cd mqtt_aquarium_monitoring
-```
-
+   ```bash
+   git clone https://github.com/Ryan-Atkinson87/mqtt_aquarium_monitoring.git mqtt_aquarium_monitoring
+   cd mqtt_aquarium_monitoring
+   ```
 2. Set up the Python virtual environment:
 
-```bash
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-```
+   ```bash
+   python3 -m venv venv
+   source venv/bin/activate
+   pip install -r requirements.txt
+   ```
 
 3. Configure your `.env` file and `config.json`:
 
@@ -94,14 +98,32 @@ pip install -r requirements.txt
     ACCESS_TOKEN=your_thingsboard_access_token
     THINGSBOARD_SERVER=your_thingsboard_server_url_or_ip
     ```
-- `config.json`:
-    ```json
-    {
-      "poll_period": 60,
-      "device_name": "your_device_name",
-      "mount_path": "/",
-      "log_level": "INFO"
-    }
+  - `config.json`:
+      ```json
+      {
+        "poll_period": 5,
+        "device_name": "RasPiZero_01",
+        "mount_path": "/",
+        "log_level": "INFO",
+        "sensors": [
+          {
+            "type": "ds18b20",
+            "id": "28-0e2461862fc0",
+            "path": "/sys/bus/w1/devices/",
+            "keys": {
+              "temperature": "water_temperature"
+            },
+            "calibration": {
+              "water_temperature": { "offset": 0.0, "slope": 1.0 }
+            },
+            "ranges": {
+              "water_temperature": { "min": 0, "max": 40 }
+            },
+            "smoothing": {},
+            "interval": 5
+          }
+        ]
+      }
     ```
 
 ### Running the Application
