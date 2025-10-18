@@ -42,3 +42,6 @@ build/
 
 # Project metadata/info (check this one)
 .info/
+
+# Local only files
+_local_notes/
