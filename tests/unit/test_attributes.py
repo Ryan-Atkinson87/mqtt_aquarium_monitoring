@@ -9,7 +9,8 @@ def collector():
 
 
 class DummyLogger:
-    def error(self, msg):
+    @staticmethod
+    def error(msg):
         print(f"LOG: {msg}")
 
 

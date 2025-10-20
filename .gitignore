@@ -21,7 +21,7 @@ log/
 config.json
 
 # Systemd / setup scripts
-mqtt_system_monitoring.service
+mqtt_aquarium_monitoring.service
 setup.sh
 start_monitoring.sh
 .deps_installed
@@ -42,3 +42,6 @@ build/
 
 # Project metadata/info (check this one)
 .info/
+
+# Local only files
+_local_notes/
