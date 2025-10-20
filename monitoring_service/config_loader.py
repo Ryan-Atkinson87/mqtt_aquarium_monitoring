@@ -20,10 +20,17 @@ from dotenv import load_dotenv
 
 
 def _safe_log(logger, level: str, msg: str) -> None:
-    """Log without exploding if logger is None."""
+    """Log without exploding if logger is None or missing methods."""
     if logger is None:
         return
-    getattr(logger, level.lower(), logger.info)(msg)
+    fn = getattr(logger, level.lower(), None)
+    if callable(fn):
+        try:
+            fn(msg)
+        except Exception:
+            pass  # swallow logger weirdness in tests
+    # else: no-op (DummyLogger won’t have .info/.warning, and that’s fine)
+
 
 
 def _project_root() -> Path:
@@ -62,10 +69,12 @@ def _load_json_config(path: Optional[Path], logger=None) -> Dict[str, Any]:
     if not path:
         return {}
     try:
-        return json.loads(path.read_text())
+        with open(path, "r") as f:          # <- use builtins.open so tests can mock it
+            return json.load(f)
     except Exception as e:
         _safe_log(logger, "error", f"ConfigLoader: failed reading {path}: {e}")
         return {}
+
 
 
 class ConfigLoader:
