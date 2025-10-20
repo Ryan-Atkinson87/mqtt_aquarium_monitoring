@@ -7,6 +7,23 @@ Format: Keep a Changelog. Versioning: SemVer (MAJOR.MINOR.PATCH).
 - (Planned) Additional sensors & telemetry fields.
 - (Planned) Pi maintenance commands section in docs.
 
+## [2.0.0-rc2] - 2025-10-20
+### Fixed
+- Resolved critical bug in DS18B20Sensor where the driver ignored provided path and mis-treated the file path as a base directory.
+- Now correctly distinguishes between path (full w1_slave file) and base_dir (directory).
+- Fully supports both configuration styles:
+   - {"id": "28-xxxx", "path": "/sys/bus/w1/devices/"}
+   - {"path": "/sys/bus/w1/devices/28-xxxx/w1_slave"}
+- _get_device_file() no longer returns None and properly raises DS18B20ReadError on missing sensors.
+
+### Improved
+- Added explicit device_file attribute to DS18B20Sensor for clarity and logging.
+- Enhanced TelemetryCollector ID resolution (id, sensor_id, path, or device_file) for more readable logs.
+
+### Version
+- Marked as release candidate 2 for v2.0.0.
+- This RC focuses on verifying stable hardware operation before final release.
+
 ## [2.0.0-rc1] - 2025-10-18
 ### Added
 - **SensorFactory** to build sensors from config (extensible, validated).
