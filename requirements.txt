@@ -2,5 +2,7 @@ pytest~=8.4.1
 dotenv~=0.9.9
 python-dotenv~=1.1.1
 psutil~=7.0.0
+RPi.gpio~=0.7.1
+setuptools~=80.9.0
 tb-mqtt-client==1.13.9
 tb-paho-mqtt-client==2.1.2

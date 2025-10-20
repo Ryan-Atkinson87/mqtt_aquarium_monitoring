@@ -72,10 +72,8 @@ class MonitoringAgent:
     def _read_and_send_telemetry(self):
         # TODO: move error logging into telemetry.py, remove from this function
         self.logger.info("Reading telemetry...")
-        telemetry, errors = self.telemetry_collector.get_telemetry()
+        telemetry = self.telemetry_collector.as_dict()
         self.logger.info(f"Collected telemetry: {telemetry}")
-        for err in errors:
-            self.logger.error(f"Telemetry error: {err}")
 
         self.logger.info("Sending telemetry...")
         self.tb_client.send_telemetry(telemetry)

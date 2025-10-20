@@ -14,6 +14,7 @@ from monitoring_service.attributes import AttributesCollector
 from monitoring_service.TBClientWrapper import TBClientWrapper
 from monitoring_service.agent import MonitoringAgent
 from monitoring_service.logging_setup import setup_logging
+from monitoring_service.sensors.ds18B20 import DS18B20Sensor
 
 def main():
     bootstrap_logger = logging.getLogger("bootstrap")
@@ -21,7 +22,7 @@ def main():
     bootstrap_logger.addHandler(logging.StreamHandler())
 
     config_loader = ConfigLoader(logger=bootstrap_logger)
-    config = config_loader.as_dict()
+    config = config_loader.as_dict() 
 
     logger = setup_logging(
         log_dir="log",
@@ -35,7 +36,12 @@ def main():
     mount_path = config["mount_path"]
     device_name = config["device_name"]
 
-    telemetry_collector = TelemetryCollector(mount_path)
+    # TODO: Add to config
+    sensor_id = "28-0e2461862fc0"
+
+    temperature_sensor = DS18B20Sensor(sensor_id)
+
+    telemetry_collector = TelemetryCollector(logger, temperature_sensor, mount_path)
     attributes_collector = AttributesCollector(device_name,
                                                logger)
 
