@@ -1,6 +1,24 @@
 {
-  "poll_period": "your_poll_period",
+  "poll_period": 60,
   "device_name": "your_device_name",
   "mount_path": "/",
-  "log_level": "INFO"
+  "log_level": "INFO",
+  "sensors": [
+    {
+      "type": "ds18b20",
+      "id": "28-0***",
+      "path": "/sys/bus/w1/devices/",
+      "keys": {
+        "device_key": "canonical_key"
+      },
+      "calibration": {
+        "canonical_key": { "offset": 0.0, "slope": 1.0 }
+      },
+      "ranges": {
+        "canonical_key": { "min": 0, "max": 100 }
+      },
+      "smoothing": {},
+      "interval": 5
+    }
+  ]
 }
