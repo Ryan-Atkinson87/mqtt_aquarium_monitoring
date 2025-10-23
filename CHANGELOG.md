@@ -7,6 +7,23 @@ Format: Keep a Changelog. Versioning: SemVer (MAJOR.MINOR.PATCH).
 - (Planned) Additional sensors & telemetry fields.
 - (Planned) Pi maintenance commands section in docs.
 
+## [v2.0.0] – 2025-10-21
+### Added
+- Modular SensorFactory for dynamic sensor creation.
+- DS18B20 driver with calibration and validation.
+- ThingsBoard MQTT client wrapper for telemetry.
+- Attributes module for device metadata.
+
+### Changed
+- Refactored TelemetryCollector to use factory output.
+- Improved ConfigLoader and logging setup.
+
+### Fixed
+- Stability and environment variable handling.
+
+### Documentation
+- Updated README and added systemd service example.
+
 ## [2.0.0-rc2] - 2025-10-20
 ### Fixed
 - Resolved critical bug in DS18B20Sensor where the driver ignored provided path and mis-treated the file path as a base directory.

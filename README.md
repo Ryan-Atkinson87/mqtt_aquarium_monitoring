@@ -93,38 +93,38 @@ mqtt_aquarium_monitoring/
 
 3. Configure your `.env` file and `config.json`:
 
-- `.env`:
-    ```
-    ACCESS_TOKEN=your_thingsboard_access_token
-    THINGSBOARD_SERVER=your_thingsboard_server_url_or_ip
-    ```
-  - `config.json`:
-      ```json
-      {
-        "poll_period": 5,
-        "device_name": "RasPiZero_01",
-        "mount_path": "/",
-        "log_level": "INFO",
-        "sensors": [
-          {
-            "type": "ds18b20",
-            "id": "28-0e2461862fc0",
-            "path": "/sys/bus/w1/devices/",
-            "keys": {
-              "temperature": "water_temperature"
-            },
-            "calibration": {
-              "water_temperature": { "offset": 0.0, "slope": 1.0 }
-            },
-            "ranges": {
-              "water_temperature": { "min": 0, "max": 40 }
-            },
-            "smoothing": {},
-            "interval": 5
-          }
-        ]
-      }
-    ```
+   - `.env`:
+     ```
+     ACCESS_TOKEN=your_thingsboard_access_token
+     THINGSBOARD_SERVER=your_thingsboard_server_url_or_ip
+     ```
+   - `config.json`:
+     ```json
+     {
+       "poll_period": 5,
+       "device_name": "RasPiZero_01",
+       "mount_path": "/",
+       "log_level": "INFO",
+       "sensors": [
+         {
+           "type": "ds18b20",
+           "id": "28-0e2461862fc0",
+           "path": "/sys/bus/w1/devices/",
+           "keys": {
+             "temperature": "water_temperature"
+           },
+           "calibration": {
+             "water_temperature": { "offset": 0.0, "slope": 1.0 }
+           },
+           "ranges": {
+             "water_temperature": { "min": 0, "max": 40 }
+           },
+           "smoothing": {},
+           "interval": 5
+         }
+       ]
+     }
+     ```
 
 ### Running the Application
 
@@ -152,9 +152,30 @@ pytest tests/
 
 This project is licensed under the [MIT License](LICENSE).
 
-## Contributing
+---
 
-Contributions welcome! Please fork the repo, create a feature branch, and submit a pull request.
+## 🤝 How to Contribute
+
+Contributions are welcome — whether it's fixing a bug, improving docs, or adding new sensor support.
+
+1. **Fork** the repository on GitHub.
+2. **Create a new branch** for your feature or fix:
+   ```bash
+   git checkout -b feature/my-new-feature
+   ```
+3. **Commit your changes** with a clear message:
+   ```bash
+   git commit -m "Add support for XYZ sensor"
+   ```
+4. **Push to your fork** and open a Pull Request against the `dev` branch.
+
+### 🧭 Contribution Guidelines
+- Follow the existing code style and structure.
+- All new code must include appropriate **unit tests**.
+- Use clear, descriptive commit messages.
+- Reference any related **issues** or **milestones** in your PR.
+- If adding a new feature or bugfix, label the issue appropriately (`feature`, `bug`, `v2.x.x`, etc.).
+- Check the [Project Board](https://github.com/Ryan-Atkinson87/mqtt_aquarium_monitoring/projects) to see ongoing work and planned releases.
 
 ---
 
