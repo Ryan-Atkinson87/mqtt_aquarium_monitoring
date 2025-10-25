@@ -19,6 +19,25 @@
       },
       "smoothing": {},
       "interval": 5
+    },
+    {
+      "type": "DHT22",
+      "id": "gpio17",
+      "pin": 17,
+      "keys": {
+        "temperature": "air_temperature",
+        "humidity": "air_humidity"
+      },
+      "calibration": {
+        "air_temperature": { "offset": 0.0, "slope": 1.0 },
+        "air_humidity": { "offset": 0.0, "slope": 1.0 }
+      },
+      "ranges": {
+        "air_temperature": { "min": -40, "max": 80 },
+        "air_humidity": { "min": 0, "max": 100 }
+      },
+      "smoothing": {},
+      "interval": 5
     }
   ]
 }
