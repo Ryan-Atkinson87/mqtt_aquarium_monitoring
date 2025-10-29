@@ -66,6 +66,22 @@ mqtt_aquarium_monitoring/
 └── requirements.txt
 ```
 
+## Supported Telemetry
+
+| Sensor Type | Telemetry Key       | Unit | Description                |
+|-------------|---------------------|------|----------------------------|
+| DS18B20     | `water_temperature` | °C   | Aquarium water temperature |
+| DHT22       | `air_temperature`   | °C   | Ambient air temperature    |
+| DHT22       | `air_humidity`      | %RH  | Relative air humidity      |
+
+Each telemetry key is mapped from the raw driver output using the `keys` section in `config.json`.  
+This allows additional sensors to be added easily without modifying the core codebase.
+
+Future sensors (planned):
+- `turbidity` - water clarity sensor  
+- `water_level` - float or pressure level sensor  
+
+
 ## Getting Started
 
 ### Prerequisites
