@@ -164,13 +164,33 @@ sudo systemctl start mqtt_aquarium_monitoring.service
 pytest tests/
 ```
 
+### Wiring Diagrams
+
+#### DS18B20 Sensor
+| Pin  | Connection | Notes                                |
+|------|------------|--------------------------------------|
+| VCC  | 3.3V       | Power                                |
+| GND  | GND        | Ground                               |
+| DATA | GPIO4      | Needs 4.7kΩ pull-up resistor to 3.3V |
+
+- Ensure 1-Wire is enabled on the Raspberry Pi.
+
+#### DHT22 Sensor
+| Pin  | Connection | Notes                                  |
+|------|------------|----------------------------------------|
+| VCC  | 5V         | Power                                  |
+| GND  | GND        | Ground                                 |
+| DATA | GPIO17     | Requires 10kΩ pull-up resistor to 3.3V |
+
+- Ensure pin numbering in config.json matches wiring.
+
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
 
 ---
 
-## 🤝 How to Contribute
+## How to Contribute
 
 Contributions are welcome — whether it's fixing a bug, improving docs, or adding new sensor support.
 
@@ -185,7 +205,7 @@ Contributions are welcome — whether it's fixing a bug, improving docs, or addi
    ```
 4. **Push to your fork** and open a Pull Request against the `dev` branch.
 
-### 🧭 Contribution Guidelines
+### Contribution Guidelines
 - Follow the existing code style and structure.
 - All new code must include appropriate **unit tests**.
 - Use clear, descriptive commit messages.
