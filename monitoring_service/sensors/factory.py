@@ -13,7 +13,7 @@ It returns a bundle that the collector can use without knowing driver internals.
 """
 
 from typing import Optional
-from monitoring_service.sensors import ds18b20
+from monitoring_service.sensors import ds18b20, dht22
 from dataclasses import dataclass, field
 from monitoring_service.sensors.base import BaseSensor
 from monitoring_service.exceptions import (InvalidSensorConfigError, UnknownSensorTypeError, FactoryError)
@@ -43,6 +43,7 @@ class SensorFactory:
         if registry is None:
             self._registry = {
                 "ds18b20": ds18b20.DS18B20Sensor,
+                "dht22": dht22.DHT22Sensor,
             }
         else:
             self._registry = registry
@@ -79,7 +80,7 @@ class SensorFactory:
         - Lookup driver class in the registry; if missing → UnknownSensorTypeError.
         - Check keys exists and is non-empty; else → InvalidSensorConfigError.
         - Validate that calibration/ranges/smoothing reference only canonical keys present in keys.values(). If not → InvalidSensorConfigError.
-        - Validate driver-specific required fields (e.g., DS18B20 needs id or allows auto-discovery with path; GPIO drivers need pin). If missing → InvalidSensorConfigError.
+        - Validate driver-declared required fields (REQUIRED_KWARGS or REQUIRED_ANY_OF). If missing → InvalidSensorConfigError.
         - Construct the driver with only the params it needs (don’t pass the whole config blindly).
         - Normalize optional metadata: if calibration/ranges/smoothing/interval are absent, set to {}/None.
         - Return a SensorBundle with the driver + metadata.
@@ -99,87 +100,55 @@ class SensorFactory:
 
         calibration_map = sensor_config.get("calibration") or {}
         for key, cal in calibration_map.items():
-            # check key is a non-empty string
+            # key must be a non-empty string
             if not isinstance(key, str) or not key.strip():
                 raise InvalidSensorConfigError(f"'{key}' in calibration_map must be a string.")
-            # check key is in keys_map
+            # key must be in canonical set
             if key not in canonical:
                 raise InvalidSensorConfigError(f"metadata references unknown canonical key '{key}' in calibration_map")
-            # check for a dictionary value
+            # cal must be dict with offset and slope
             if not isinstance(cal, dict):
                 raise InvalidSensorConfigError(f"Calibration for '{key}' must be a dict with 'offset' and 'slope'")
-            # check correct keys are in dictionary
             if "offset" not in cal or "slope" not in cal:
                 raise InvalidSensorConfigError(f"Calibration for '{key}' must include 'offset' and 'slope'")
-            # check values are of correct type
             if not isinstance(cal["offset"], (int, float)) or not isinstance(cal["slope"], (int, float)):
                 raise InvalidSensorConfigError(f"Calibration values for '{key}' must be numeric")
 
         ranges_map = sensor_config.get("ranges") or {}
-        # Validate ranges_map
         for key, limits in ranges_map.items():
-
-            # check key is a non-empty string
             if not isinstance(key, str) or not key.strip():
-                raise InvalidSensorConfigError(
-                    f"'{key}' in ranges_map must be a string."
-                )
-            # check key is present in keys_map
+                raise InvalidSensorConfigError(f"'{key}' in ranges_map must be a string.")
             if key not in canonical:
-                raise InvalidSensorConfigError(
-                    f"metadata references unknown canonical key '{key}' in ranges_map"
-                )
-
-            # check limits is dictionary
+                raise InvalidSensorConfigError(f"metadata references unknown canonical key '{key}' in ranges_map")
             if not isinstance(limits, dict):
                 raise InvalidSensorConfigError(f"Range for '{key}' must be a dict with 'min' and 'max'")
-            # check limits contains min and max
             if "min" not in limits or "max" not in limits:
                 raise InvalidSensorConfigError(f"Range for '{key}' must include 'min' and 'max'")
 
             low = limits["min"]
             high = limits["max"]
 
-            # check range values are numeric
             if not all(isinstance(x, (int, float)) for x in (low, high)):
                 raise InvalidSensorConfigError(f"Range values for '{key}' must be numeric")
-            # check low is less than high
             if low >= high:
                 raise InvalidSensorConfigError(f"Invalid range for '{key}': min ({low}) must be less than max ({high})")
 
         smoothing_map = sensor_config.get("smoothing") or {}
-
-        # Validate smoothing_map
         for key, value in smoothing_map.items():
-            # check key is a non-empty string
             if not isinstance(key, str) or not key.strip():
-                raise InvalidSensorConfigError(
-                    f"'{key}' in smoothing_map must be a string."
-                )
-            # check key is present in keys_map
+                raise InvalidSensorConfigError(f"'{key}' in smoothing_map must be a string.")
             if key not in canonical:
-                raise InvalidSensorConfigError(
-                    f"metadata references unknown canonical key '{key}' in smoothing_map"
-                )
-            # Check value is either an int of float
+                raise InvalidSensorConfigError(f"metadata references unknown canonical key '{key}' in smoothing_map")
+            # Decide: smoothing window is an integer ≥ 1
             if not isinstance(value, int):
-                raise InvalidSensorConfigError(
-                    f"Smoothing for '{key}' must be a numeric value: {value}"
-                )
+                raise InvalidSensorConfigError(f"Smoothing for '{key}' must be an integer ≥ 1: {value}")
             if value < 1:
-                raise InvalidSensorConfigError(
-                    f"Smoothing for '{key}' must be less than or equal to 1: {value}"
-                )
-
+                raise InvalidSensorConfigError(f"Smoothing for '{key}' must be an integer ≥ 1: {value}")
 
         interval = sensor_config.get("interval")
-        # Limit interval to more than 1 second
-        if interval is None:
-            interval = None
-        elif not isinstance(interval, int) or interval < 1:
+        # interval must be an integer ≥ 1 if provided
+        if interval is not None and (not isinstance(interval, int) or interval < 1):
             raise InvalidSensorConfigError("'interval' must be an integer ≥ 1 if provided")
-
-
 
         driver_class = self._registry.get(sensor_type)
         if driver_class is None:
@@ -191,40 +160,58 @@ class SensorFactory:
 
         driver_config = sensor_config
 
-        required_any_of = getattr(driver_class, "REQUIRED_ANY_OF", [])
+        required_kwargs = getattr(driver_class, "REQUIRED_KWARGS", None)
+        required_any_of = getattr(driver_class, "REQUIRED_ANY_OF", None) if required_kwargs is None else None
         accepted_kwargs = getattr(driver_class, "ACCEPTED_KWARGS", set())
         coercers = getattr(driver_class, "COERCERS", {})
 
-        filtered_kwargs = {}
+        # Filter kwargs to only what the driver accepts
+        filtered_kwargs: dict[str, object] = {}
+        for k, v in driver_config.items():
+            if k in accepted_kwargs:
+                filtered_kwargs[k] = v
 
-        for key, value in driver_config.items():
-            if key in accepted_kwargs:
-                filtered_kwargs[key] = value
-
-        if required_any_of:
-            has_valid_group = False
-
-            for group in required_any_of:
-                # Check if every required key in this group exists and has a non-empty value
-                if all(
-                        key in filtered_kwargs and filtered_kwargs[key] not in (None, "", [])
-                        for key in group
-                ):
-                    has_valid_group = True
-                    break
-
-            if not has_valid_group:
-                raise InvalidSensorConfigError(
-                    f"{driver_class.__name__} requires at least one of the following sets of fields: {required_any_of}"
-                )
+        # Apply coercers before required checks (e.g., "17" → 17)
         for field_name, cast in coercers.items():
             if field_name in filtered_kwargs:
                 try:
                     filtered_kwargs[field_name] = cast(filtered_kwargs[field_name])
                 except Exception as e:
                     raise InvalidSensorConfigError(
-                        f"Invalid type for '{field_name}' in {driver_class.__name__}: expected {cast.__name__}"
+                        f"Invalid type for '{field_name}' in {driver_class.__name__}: expected {getattr(cast, '__name__', str(cast))}"
                     ) from e
+
+        # If driver declares REQUIRED_KWARGS, enforce all of them
+        if required_kwargs:
+            missing: set[str] = set()
+            for f in required_kwargs:
+                if f not in filtered_kwargs or filtered_kwargs[f] in (None, "", []):
+                    missing.add(f)
+
+            # Ensure REQUIRED_KWARGS ⊆ ACCEPTED_KWARGS to avoid silent drops
+            not_accepted = set(required_kwargs) - set(accepted_kwargs)
+            if not_accepted:
+                raise InvalidSensorConfigError(
+                    f"Driver {driver_class.__name__} misconfigured: REQUIRED_KWARGS {sorted(required_kwargs)} "
+                    f"must be included in ACCEPTED_KWARGS (missing: {sorted(not_accepted)})"
+                )
+
+            if missing:
+                raise InvalidSensorConfigError(
+                    f"{driver_class.__name__} requires fields: {sorted(required_kwargs)} — missing: {sorted(missing)}"
+                )
+
+        # Else, fall back to REQUIRED_ANY_OF semantics (list of field groups)
+        elif required_any_of:
+            has_valid_group = False
+            for group in required_any_of:
+                if all(key in filtered_kwargs and filtered_kwargs[key] not in (None, "", []) for key in group):
+                    has_valid_group = True
+                    break
+            if not has_valid_group:
+                raise InvalidSensorConfigError(
+                    f"{driver_class.__name__} requires at least one of the following sets of fields: {required_any_of}"
+                )
 
         try:
             driver = driver_class(**filtered_kwargs)
@@ -266,7 +253,7 @@ class SensorFactory:
         if not isinstance(sensors_cfgs, list):
             raise InvalidSensorConfigError("'sensors' must be a list")
 
-        bundles: List[SensorBundle] = []
+        bundles: list[SensorBundle] = []
 
         # 2) Build each sensor, skip on per-item failure
         for idx, sensor_cfg in enumerate(sensors_cfgs):

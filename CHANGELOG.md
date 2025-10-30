@@ -4,8 +4,24 @@ Format: Keep a Changelog. Versioning: SemVer (MAJOR.MINOR.PATCH).
 
 ## [Unreleased]
 ### Added
-- (Planned) Additional sensors & telemetry fields.
-- (Planned) Pi maintenance commands section in docs.
+- (Planned) Internal version tracking.
+- (Planned) SQLite que for offline storage and retries.
+- (Planned) HTTP implementation for sending data to places other than ThingsBoard.
+
+
+## [v2.1.0] - 2025-10-30
+### Added
+- DHT22 sensor support for temperature and humidity.
+- Unit tests for DHT22 driver and factory integration.
+- Hardware test files for DHT22.
+- README updates for wiring, config example, and expected telemetry keys.
+
+### Changed
+- SensorFactory now supports drivers that declare `REQUIRED_KWARGS`.
+- Improved coercion and validation for GPIO-based sensors.
+
+### Documentation
+- Updated README.
 
 ## [v2.0.0] – 2025-10-21
 ### Added
