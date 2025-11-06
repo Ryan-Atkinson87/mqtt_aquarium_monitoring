@@ -21,7 +21,7 @@ class DHT22ReadError(Exception):
 class DHT22Sensor(BaseSensor):
     # Factory uses these for validation + filtering.
     REQUIRED_KWARGS = ["id", "pin"]
-    ACCEPTED_KWARGS = {"id", "pin"}
+    ACCEPTED_KWARGS = ["id", "pin"]
     COERCERS = {"pin": int}
     def __init__(self, *, id: str | None = None, pin: int | None = None,
                  kind: str = "Temperature", units: str = "C"):
