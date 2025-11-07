@@ -1,21 +1,21 @@
 {
   "poll_period": 60,
-  "device_name": "your_device_name",
+  "device_name": "RasPiZero_01",
   "mount_path": "/",
   "log_level": "INFO",
   "sensors": [
     {
       "type": "ds18b20",
-      "id": "28-0***",
+      "id": "28-0e2461862fc0",
       "path": "/sys/bus/w1/devices/",
       "keys": {
-        "device_key": "canonical_key"
+        "temperature": "water_temperature"
       },
       "calibration": {
-        "canonical_key": { "offset": 0.0, "slope": 1.0 }
+        "water_temperature": { "offset": 0.0, "slope": 1.0 }
       },
       "ranges": {
-        "canonical_key": { "min": 0, "max": 100 }
+        "water_temperature": { "min": 0, "max": 40 }
       },
       "smoothing": {},
       "interval": 5
@@ -35,6 +35,24 @@
       "ranges": {
         "air_temperature": { "min": -40, "max": 80 },
         "air_humidity": { "min": 0, "max": 100 }
+      },
+      "smoothing": {},
+      "interval": 5
+    },
+    {
+      "type": "water_level",
+      "id": "grove_water_level",
+      "bus": 1,
+      "low_address": "0x3B",
+      "high_address": "0x3C",
+      "keys": {
+        "water_level": "water_level"
+      },
+      "calibration": {
+        "water_level": { "offset": 0.0, "slope": 1.0 }
+      },
+      "ranges": {
+        "water_level": { "min": 0, "max": 100 }
       },
       "smoothing": {},
       "interval": 5

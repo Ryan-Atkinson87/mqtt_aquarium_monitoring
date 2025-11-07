@@ -13,7 +13,7 @@ It returns a bundle that the collector can use without knowing driver internals.
 """
 
 from typing import Optional
-from monitoring_service.sensors import ds18b20, dht22
+from monitoring_service.sensors import ds18b20, dht22, i2c_water_level
 from dataclasses import dataclass, field
 from monitoring_service.sensors.base import BaseSensor
 from monitoring_service.exceptions import (InvalidSensorConfigError, UnknownSensorTypeError, FactoryError)
@@ -44,6 +44,7 @@ class SensorFactory:
             self._registry = {
                 "ds18b20": ds18b20.DS18B20Sensor,
                 "dht22": dht22.DHT22Sensor,
+                "water_level": i2c_water_level.I2CWaterLevelSensor,
             }
         else:
             self._registry = registry
