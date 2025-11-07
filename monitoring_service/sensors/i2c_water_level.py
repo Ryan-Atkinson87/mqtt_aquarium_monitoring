@@ -161,7 +161,10 @@ class I2CWaterLevelSensor(BaseSensor):
     # --- Reading -----------------------------------------------------------
 
     def _collect_raw(self) -> dict:
-        """Read raw 8 + 12 bytes and derive a relative level in mm."""
+        """Read raw 8 + 12 bytes and derive a relative level in mm.
+
+        Validates returned data and raises WaterLevelReadError on malformed/truncated reads.
+        """
         if not getattr(self, "_smbus", None):
             self._smbus = SMBus(self.bus)
 
@@ -176,9 +179,25 @@ class I2CWaterLevelSensor(BaseSensor):
             low_data = list(low_msg)
             high_data = list(high_msg)
         except Exception as e:
-            raise WaterLevelReadError(f"I2C read failed from {hex(getattr(self,'addr_low',0))}/{hex(getattr(self,'addr_high',0))}: {e}") from e
+            raise WaterLevelReadError(
+                f"I2C read failed from {hex(getattr(self, 'addr_low', 0))}/{hex(getattr(self, 'addr_high', 0))}: {e}"
+            ) from e
 
-        sections = low_data + high_data  # 20 items expected
+        sections = low_data + high_data  # expected 20 items
+
+        # Validate length
+        if len(sections) != 20:
+            raise WaterLevelReadError(
+                f"Truncated I2C read: expected 20 bytes, got {len(sections)} (low={len(low_data)}, high={len(high_data)})"
+            )
+
+        # Validate types and ranges for each byte
+        for i, v in enumerate(sections):
+            if not isinstance(v, int):
+                raise WaterLevelReadError(
+                    f"Malformed I2C byte at section {i}: expected int 0..255, got {type(v).__name__}")
+            if not (0 <= v <= 0xFF):
+                raise WaterLevelReadError(f"I2C byte out of range at section {i}: {v}")
 
         # Arduino example threshold
         THRESHOLD = 100
