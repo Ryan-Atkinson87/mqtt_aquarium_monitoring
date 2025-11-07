@@ -36,8 +36,11 @@ mqtt_aquarium_monitoring/
 │   ├── sensors/
 │   │   ├── __init__.py
 │   │   ├── base.py
+│   │   ├── constants.py
+│   │   ├── dht22.py
 │   │   ├── ds18b20.py
-│   │   └── factory.py
+│   │   ├── factory.py
+│   │   └── i2c_water_level.py
 │   ├── __init__.py
 │   ├── agent.py
 │   ├── attributes.py
@@ -49,16 +52,22 @@ mqtt_aquarium_monitoring/
 ├── tests/
 │   ├── hardware/
 │   │   ├── __init__.py
-│   │   └── test_hardware_telemetry_collector.py
+│   │   ├── test_hardware_dht22.py
+│   │   ├── test_hardware_ds18b20.py
+│   │   └── test_hardware_i2c_water_level.py
 │   ├── unit/
 │   │   ├── __init__.py
 │   │   ├── test_attributes.py
 │   │   ├── test_config_loader.py
+│   │   ├── test_dht22_factory.py
+│   │   ├── test_dht22_sensor.py
 │   │   ├── test_factory_build.py
+│   │   ├── test_i2c_water_level.py
 │   │   ├── test_tbclientwrapper.py
 │   │   └── test_telemetry_collector.py
 │   └── __init__.py
 ├── .env
+├── CHANGELOG.md
 ├── config.example.json
 ├── config.json
 ├── mqtt_aquarium_monitoring_example.service
@@ -68,19 +77,19 @@ mqtt_aquarium_monitoring/
 
 ## Supported Telemetry
 
-| Sensor Type | Telemetry Key       | Unit | Description                |
-|-------------|---------------------|------|----------------------------|
-| DS18B20     | `water_temperature` | °C   | Aquarium water temperature |
-| DHT22       | `air_temperature`   | °C   | Ambient air temperature    |
-| DHT22       | `air_humidity`      | %RH  | Relative air humidity      |
+| Sensor Type     | Telemetry Key       | Unit | Description                           |
+|-----------------|---------------------|------|---------------------------------------|
+| DS18B20         | `water_temperature` | °C   | Aquarium water temperature            |
+| DHT22           | `air_temperature`   | °C   | Ambient air temperature               |
+| DHT22           | `air_humidity`      | %RH  | Relative air humidity                 |
+| I2C Water Level | `water_level`       | mm   | Aquarium water level from top of tank |
 
 Each telemetry key is mapped from the raw driver output using the `keys` section in `config.json`.  
 This allows additional sensors to be added easily without modifying the core codebase.
 
 Future sensors (planned):
-- `turbidity` - water clarity sensor  
-- `water_level` - float or pressure level sensor  
-
+- `turbidity` - water clarity sensor
+- `water_flow` - flow speed of water coming from an external filter
 
 ## Getting Started
 
@@ -117,28 +126,65 @@ Future sensors (planned):
    - `config.json`:
      ```json
      {
-       "poll_period": 5,
-       "device_name": "RasPiZero_01",
-       "mount_path": "/",
-       "log_level": "INFO",
-       "sensors": [
-         {
-           "type": "ds18b20",
-           "id": "28-0e2461862fc0",
-           "path": "/sys/bus/w1/devices/",
-           "keys": {
-             "temperature": "water_temperature"
-           },
-           "calibration": {
-             "water_temperature": { "offset": 0.0, "slope": 1.0 }
-           },
-           "ranges": {
-             "water_temperature": { "min": 0, "max": 40 }
-           },
-           "smoothing": {},
-           "interval": 5
-         }
-       ]
+      "poll_period": 60,
+      "device_name": "RasPiZero_01",
+      "mount_path": "/",
+      "log_level": "INFO",
+      "sensors": [
+        {
+          "type": "ds18b20",
+          "id": "28-0e2461862fc0",
+          "path": "/sys/bus/w1/devices/",
+          "keys": {
+            "temperature": "water_temperature"
+          },
+          "calibration": {
+            "water_temperature": { "offset": 0.0, "slope": 1.0 }
+          },
+          "ranges": {
+            "water_temperature": { "min": 0, "max": 40 }
+          },
+          "smoothing": {},
+          "interval": 5
+        },
+        {
+          "type": "DHT22",
+          "id": "gpio17",
+          "pin": 17,
+          "keys": {
+            "temperature": "air_temperature",
+            "humidity": "air_humidity"
+          },
+          "calibration": {
+            "air_temperature": { "offset": 0.0, "slope": 1.0 },
+            "air_humidity": { "offset": 0.0, "slope": 1.0 }
+          },
+          "ranges": {
+            "air_temperature": { "min": -40, "max": 80 },
+            "air_humidity": { "min": 0, "max": 100 }
+          },
+          "smoothing": {},
+          "interval": 5
+        },
+        {
+          "type": "water_level",
+          "id": "grove_water_level",
+          "bus": 1,
+          "low_address": "0x3B",
+          "high_address": "0x3C",
+          "keys": {
+            "water_level": "water_level"
+          },
+          "calibration": {
+            "water_level": { "offset": 0.0, "slope": 1.0 }
+          },
+          "ranges": {
+            "water_level": { "min": 0, "max": 100 }
+          },
+          "smoothing": {},
+          "interval": 5
+        }
+      ]
      }
      ```
 
@@ -183,6 +229,14 @@ pytest tests/
 | DATA | GPIO17     | Requires 10kΩ pull-up resistor to 3.3V |
 
 - Ensure pin numbering in config.json matches wiring.
+
+#### I2C Water Level Sensor
+| Pin | Connection | Notes  |
+|-----|------------|--------|
+| VCC | 3.3V       | Power  |
+| GND | GND        | Ground |
+| SDA | GPIO3      | Data   |
+| SCL | GPIO5      | Clock  |
 
 ## License
 
