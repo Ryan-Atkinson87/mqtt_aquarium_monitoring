@@ -1,5 +1,5 @@
 {
-  "poll_period": 60,
+  "poll_period": 5,
   "device_name": "RasPiZero_01",
   "mount_path": "/",
   "log_level": "INFO",
@@ -56,6 +56,29 @@
       },
       "smoothing": {},
       "interval": 5
+    },
+    {
+      "type": "water_flow",
+      "id": "gpio18",
+      "pin": 18,
+      "keys": {
+        "water_flow": "flow_smoothed",
+        "water_flow_instant": "flow_instant"
+      },
+      "calibration": {
+        "water_flow": { "offset": 0.0, "slope": 1.0 },
+        "water_flow_instant": { "offset": 0.0, "slope": 1.0 }
+      },
+      "ranges": {
+        "water_flow": { "min": 0, "max": 30 },
+        "water_flow_instant": { "min": 0, "max": 30 }
+      },
+      "smoothing": {},
+      "interval": 5,
+      "sample_window": 5,
+      "sliding_window_s": 3,
+      "glitch_us": 200,
+      "calibration_constant": 4.5
     }
   ]
 }
