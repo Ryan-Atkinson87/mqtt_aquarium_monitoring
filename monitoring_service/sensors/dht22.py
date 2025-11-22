@@ -5,8 +5,7 @@ Driver module for dht22 sensor
 """
 import adafruit_dht
 import board
-from monitoring_service.sensors.constants import VALID_GPIO_PINS
-from monitoring_service.sensors.base import BaseSensor
+from monitoring_service.sensors.gpio_sensor import GPIOSensor, GPIOValueError
 from typing import Any
 
 class DHT22InitError(Exception):
@@ -18,11 +17,12 @@ class DHT22ValueError(Exception):
 class DHT22ReadError(Exception):
     pass
 
-class DHT22Sensor(BaseSensor):
+class DHT22Sensor(GPIOSensor):
     # Factory uses these for validation + filtering.
     REQUIRED_KWARGS = ["id", "pin"]
     ACCEPTED_KWARGS = ["id", "pin"]
     COERCERS = {"pin": int}
+
     def __init__(self, *, id: str | None = None, pin: int | None = None,
                  kind: str = "Temperature", units: str = "C"):
         self.sensor = None
@@ -52,12 +52,14 @@ class DHT22Sensor(BaseSensor):
     # --- Internals ----------------------------------------------------------
 
     def _check_pin(self) -> None:
-        valid_pins = VALID_GPIO_PINS
-
-        if not isinstance(self.pin, int):
-            raise DHT22ValueError(f"Invalid pin type: expected int, got {type(self.pin).__name__}")
-        if self.pin not in valid_pins:
-            raise DHT22ValueError(f"Pin {self.pin} is not a valid GPIO pin on this device.")
+        """
+        Use the generic GPIO check but re-raise as DHT22ValueError so tests
+        and callers see driver-specific exceptions.
+        """
+        try:
+            super()._check_pin()
+        except GPIOValueError as e:
+            raise DHT22ValueError(str(e)) from e
 
     def _create_sensor(self) -> Any:
         try:
