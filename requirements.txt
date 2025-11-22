@@ -1,9 +1,10 @@
 adafruit-blinka==8.66.2
 adafruit-circuitpython-dht==4.0.10
 dotenv~=0.9.9
+pigpio~=1.78
+psutil~=7.0.0
 pytest~=8.4.1
 python-dotenv~=1.1.1
-psutil~=7.0.0
 RPi.gpio~=0.7.1
 setuptools~=80.9.0
 smbus3~=0.5.5
