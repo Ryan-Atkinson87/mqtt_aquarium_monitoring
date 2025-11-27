@@ -14,9 +14,12 @@ Format: Keep a Changelog. Versioning: SemVer (MAJOR.MINOR.PATCH).
 - DHT22 sensor support for temperature and humidity.
 - Unit tests for DHT22 driver and factory integration.
 - Hardware test files for DHT22.
-- I2C Water Level sensor support for temperature and humidity.
+- I2C Water Level sensor support for water level.
 - Unit tests for I2C Water Level driver and factory integration.
 - Hardware test files for I2C Water Level sensor.
+- Water flow sensor support for water flow readings.
+- Unit tests for Water Flow driver and factory integration.
+- Hardware test files for Water Flow sensor.
 - README updates for wiring, config example, and expected telemetry keys.
 
 ### Changed
