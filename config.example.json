@@ -1,24 +1,84 @@
 {
-  "poll_period": 60,
-  "device_name": "your_device_name",
+  "poll_period": 5,
+  "device_name": "RasPiZero_01",
   "mount_path": "/",
   "log_level": "INFO",
   "sensors": [
     {
       "type": "ds18b20",
-      "id": "28-0***",
+      "id": "28-0e2461862fc0",
       "path": "/sys/bus/w1/devices/",
       "keys": {
-        "device_key": "canonical_key"
+        "temperature": "water_temperature"
       },
       "calibration": {
-        "canonical_key": { "offset": 0.0, "slope": 1.0 }
+        "water_temperature": { "offset": 0.0, "slope": 1.0 }
       },
       "ranges": {
-        "canonical_key": { "min": 0, "max": 100 }
+        "water_temperature": { "min": 0, "max": 40 }
       },
       "smoothing": {},
       "interval": 5
+    },
+    {
+      "type": "DHT22",
+      "id": "gpio17",
+      "pin": 17,
+      "keys": {
+        "temperature": "air_temperature",
+        "humidity": "air_humidity"
+      },
+      "calibration": {
+        "air_temperature": { "offset": 0.0, "slope": 1.0 },
+        "air_humidity": { "offset": 0.0, "slope": 1.0 }
+      },
+      "ranges": {
+        "air_temperature": { "min": -40, "max": 80 },
+        "air_humidity": { "min": 0, "max": 100 }
+      },
+      "smoothing": {},
+      "interval": 5
+    },
+    {
+      "type": "water_level",
+      "id": "grove_water_level",
+      "bus": 1,
+      "low_address": "0x3B",
+      "high_address": "0x3C",
+      "keys": {
+        "water_level": "water_level"
+      },
+      "calibration": {
+        "water_level": { "offset": 0.0, "slope": 1.0 }
+      },
+      "ranges": {
+        "water_level": { "min": 0, "max": 100 }
+      },
+      "smoothing": {},
+      "interval": 5
+    },
+    {
+      "type": "water_flow",
+      "id": "gpio18",
+      "pin": 18,
+      "keys": {
+        "water_flow": "flow_smoothed",
+        "water_flow_instant": "flow_instant"
+      },
+      "calibration": {
+        "water_flow": { "offset": 0.0, "slope": 1.0 },
+        "water_flow_instant": { "offset": 0.0, "slope": 1.0 }
+      },
+      "ranges": {
+        "water_flow": { "min": 0, "max": 30 },
+        "water_flow_instant": { "min": 0, "max": 30 }
+      },
+      "smoothing": {},
+      "interval": 5,
+      "sample_window": 5,
+      "sliding_window_s": 3,
+      "glitch_us": 200,
+      "calibration_constant": 4.5
     }
   ]
 }
