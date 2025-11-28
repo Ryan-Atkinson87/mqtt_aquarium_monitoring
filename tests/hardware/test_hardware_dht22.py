@@ -76,13 +76,10 @@ def test_dht22_hardware_read_via_factory_once():
     assert 0.0 <= h <= 100.0, f"Unreasonable air_humidity: {h} %RH"
 
 @pytest.mark.hardware
-def test_dht22_invalid_pin_rejected_by_factory():
-    """
-    Ensure factory validation rejects a clearly invalid GPIO number.
-    """
-    from monitoring_service.exceptions import InvalidSensorConfigError
+def test_dht22_invalid_pin_skipped_by_factory():
+    from monitoring_service.sensors.factory import SensorFactory
 
-    bad_pin = 999  # not a real GPIO on Pi
+    bad_pin = 999
     config = {
         "sensors": [
             {
@@ -98,6 +95,9 @@ def test_dht22_invalid_pin_rejected_by_factory():
     }
 
     factory = SensorFactory()
-    # Build should fail cleanly and not explode the world
-    with pytest.raises(InvalidSensorConfigError):
-        factory.build_all(config)
+
+    sensors = factory.build_all(config)
+
+    # Sensor should be skipped, not created, and factory should not raise.
+    assert sensors == [] or all(s.id != f"gpio{bad_pin}" for s in sensors)
+

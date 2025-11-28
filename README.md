@@ -271,7 +271,7 @@ pytest tests/
 |------------|---------------|------------|
 | VCC        | 5V            | Power      |
 | GND        | GND           | Ground     |
-| Signal     | GPIO17        | Signal Pin |
+| Signal     | GPIO18        | Signal Pin |
 
 Signal pin requires pull-up; pigpio sets internal pull-up automatically
 
