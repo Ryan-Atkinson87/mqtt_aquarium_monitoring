@@ -48,15 +48,18 @@ def sensor_ok():
     return DHT22Sensor(id="gpio17", pin=17)
 
 def test_check_pin_rejects_bad_type():
-    s = DHT22Sensor(id="x", pin="17")  # wrong type on purpose
+    from monitoring_service.sensors.dht22 import DHT22Sensor, DHT22ValueError
+    # Pin must be an int. If the factory coerces, good, but direct driver init must reject.
     with pytest.raises(DHT22ValueError):
-        s._check_pin()
+        DHT22Sensor(id="x", pin="17")  # wrong type on purpose
 
 def test_check_pin_rejects_invalid_pin_number():
+    from monitoring_service.sensors.dht22 import DHT22Sensor, DHT22ValueError
+    from monitoring_service.sensors.constants import VALID_GPIO_PINS
+
     bad_pin = max(VALID_GPIO_PINS) + 10
-    s = DHT22Sensor(id="x", pin=bad_pin)
     with pytest.raises(DHT22ValueError):
-        s._check_pin()
+        DHT22Sensor(id="x", pin=bad_pin)
 
 def test_read_success(sensor_ok, monkeypatch):
     # Ensure the fake device returns expected values
