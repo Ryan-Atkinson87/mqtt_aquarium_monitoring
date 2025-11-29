@@ -32,6 +32,7 @@ class DHT22Sensor(GPIOSensor):
 
         self.sensor_id: str | None = id
         self.pin: int | None = pin
+        self._check_pin()
 
         self.id = self.sensor_id
 
@@ -73,7 +74,6 @@ class DHT22Sensor(GPIOSensor):
 
     def read(self):
         return_dict = {}
-        self._check_pin()
 
         if self.sensor is None:
             self._create_sensor()
