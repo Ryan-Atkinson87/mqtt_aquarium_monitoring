@@ -11,14 +11,15 @@ class WaterLevelReadError(Exception):
     pass
 
 class I2CWaterLevelSensor(BaseSensor):
-    REQUIRED_KWARGS = ["id", "bus", "low_address", "high_address"]
+    # *** CHANGED *** removed high_address from required fields
+    REQUIRED_KWARGS = ["id", "bus", "low_address"]
     ACCEPTED_KWARGS = ["id", "bus", "low_address", "high_address"]
     COERCERS = {"bus": int, "low_address": int, "high_address": int}
 
     def __init__(self, *, id: str,
                  bus: int | str,
                  low_address: int | str,
-                 high_address: int | str,
+                 high_address: int | str | None = None,   # *** CHANGED ***
                  kind: str = "WaterLevel",
                  units: str = "mm"):
         self.sensor = None
@@ -41,13 +42,14 @@ class I2CWaterLevelSensor(BaseSensor):
             raise WaterLevelInitError(f"Unsupported type for I2C bus: {type(bus).__name__}")
 
         if not (0 <= coerced_bus <= 3):
-            # keep this check conservative; adjust if you support other adapters
             raise WaterLevelInitError(f"I2C bus {coerced_bus} out of allowed range 0..3")
 
         self.bus = coerced_bus
 
         # --- address coercion helper ---
         def _coerce_addr(val, name):
+            if val is None:
+                return None   # *** CHANGED ***
             if isinstance(val, int):
                 coerced = val
             elif isinstance(val, str):
@@ -58,19 +60,19 @@ class I2CWaterLevelSensor(BaseSensor):
             else:
                 raise WaterLevelInitError(f"Unsupported type for I2C address {name}: {type(val).__name__}")
 
-            # quick sanity, allow values that may be 7-bit or 8-bit notation;
-            # exact resolution/probing happens in _check_address
             if not (0x01 <= coerced <= 0x7F):
                 raise WaterLevelInitError(f"I2C address {hex(coerced)} for {name} out of 7-bit range 0x01–0x7F")
             return coerced
 
         self.low_address = _coerce_addr(low_address, "low_address")
-        self.high_address = _coerce_addr(high_address, "high_address")
+
+        # *** CHANGED *** allow high_address to be None
+        self.high_address = _coerce_addr(high_address, "high_address") if high_address is not None else None
 
         self.consecutive_failures = 0
         self.last_success_ts = None
 
-        # open bus and resolve address variants
+        # open bus and resolve address
         self._check_bus()
         self._check_address()
 
@@ -91,7 +93,6 @@ class I2CWaterLevelSensor(BaseSensor):
     # --- Bus / Address helpers ---------------------------------------------
 
     def _check_bus(self):
-        """Open /dev/i2c-{bus} and keep the handle for reuse."""
         try:
             self._smbus = SMBus(self.bus)
         except FileNotFoundError as e:
@@ -101,119 +102,97 @@ class I2CWaterLevelSensor(BaseSensor):
         except OSError as e:
             raise WaterLevelInitError(f"Failed to open I2C bus {self.bus}: {e}") from e
 
-    def _probe_pair(self, low: int, high: int) -> bool:
-        """Return True if both addresses respond to a 1-byte probe read."""
-        try:
-            self._smbus.i2c_rdwr(i2c_msg.read(low, 1))
-            self._smbus.i2c_rdwr(i2c_msg.read(high, 1))
-            return True
-        except Exception:
-            return False
-
     def _check_address(self):
         """
-        Validate/resolve the configured low/high addresses.
-
-        Behaviour:
-        - First try the provided addresses as-is (likely 7-bit).
-        - If that fails, try the right-shifted variants (handles Arduino 8-bit notation).
-        - If that fails, try a small set of common fallback pairs.
-        - Sets self.addr_low and self.addr_high to the working 7-bit addresses.
+        *** CHANGED ***
+        v1.0 Grove Water Level uses ONE address (0x77).
+        Ignore high_address and only probe low_address.
         """
         if not getattr(self, "_smbus", None):
             raise WaterLevelInitError("I2C bus not open before checking address")
 
         candidates = []
 
-        # prefer user-provided pair first
-        candidates.append((self.low_address, self.high_address))
+        # user-provided low_address
+        candidates.append(self.low_address)
 
-        # try interpreting provided values as 8-bit (shift right)
+        # right-shift variant if user gave 8-bit
         try:
-            candidates.append((self.low_address >> 1, self.high_address >> 1))
+            candidates.append(self.low_address >> 1)
         except Exception:
             pass
 
-        # common known 7-bit pairs for this module (7-bit equivalents of Arduino sample)
-        candidates.extend([
-            (0x3B, 0x3C),  # common for some Grove modules
-            (0x3C, 0x3D),
-        ])
+        # fallback known address for v1.0: 0x77
+        candidates.append(0x77)
 
         tried = []
-        for low, high in candidates:
-            # normalize to int and ensure in 7-bit range
+        for addr in candidates:
             try:
-                low_i = int(low) & 0x7F
-                high_i = int(high) & 0x7F
+                addr_i = int(addr) & 0x7F
             except Exception:
                 continue
 
-            tried.append((low_i, high_i))
-            if self._probe_pair(low_i, high_i):
-                self.addr_low = low_i
-                self.addr_high = high_i
-                return
+            tried.append(addr_i)
 
-        # if none responded, raise including attempted candidates for debugging
+            # probe single address
+            try:
+                self._smbus.i2c_rdwr(i2c_msg.read(addr_i, 1))
+                self.addr = addr_i     # *** CHANGED ***
+                return
+            except Exception:
+                continue
+
         raise WaterLevelInitError(f"Could not contact water-level device on bus {self.bus}. Tried: {tried}")
 
     # --- Reading -----------------------------------------------------------
 
     def _collect_raw(self) -> dict:
-        """Read raw 8 + 12 bytes and derive a relative level in mm.
-
-        Validates returned data and raises WaterLevelReadError on malformed/truncated reads.
+        """
+        *** CHANGED ***
+        v1.0 Grove Water Level returns 20 bytes from ONE I2C address.
+        First 8 bytes = low block
+        Next 12 bytes = high block
         """
         if not getattr(self, "_smbus", None):
             self._smbus = SMBus(self.bus)
 
-        if not hasattr(self, "addr_low") or not hasattr(self, "addr_high"):
-            raise WaterLevelReadError("Sensor addresses not resolved; call _check_address() first")
+        if not hasattr(self, "addr"):
+            raise WaterLevelReadError("Sensor address not resolved; call _check_address() first")
 
         try:
-            low_msg = i2c_msg.read(self.addr_low, 8)
-            high_msg = i2c_msg.read(self.addr_high, 12)
-            self._smbus.i2c_rdwr(low_msg)
-            self._smbus.i2c_rdwr(high_msg)
-            low_data = list(low_msg)
-            high_data = list(high_msg)
+            msg = i2c_msg.read(self.addr, 20)          # *** CHANGED ***
+            self._smbus.i2c_rdwr(msg)
+            data = list(msg)
         except Exception as e:
             raise WaterLevelReadError(
-                f"I2C read failed from {hex(getattr(self, 'addr_low', 0))}/{hex(getattr(self, 'addr_high', 0))}: {e}"
+                f"I2C read failed from {hex(getattr(self, 'addr', 0))}: {e}"
             ) from e
 
-        sections = low_data + high_data  # expected 20 items
-
-        # Validate length
-        if len(sections) != 20:
+        if len(data) != 20:
             raise WaterLevelReadError(
-                f"Truncated I2C read: expected 20 bytes, got {len(sections)} (low={len(low_data)}, high={len(high_data)})"
+                f"Truncated I2C read: expected 20 bytes, got {len(data)}"
             )
 
-        # Validate types and ranges for each byte
-        for i, v in enumerate(sections):
-            if not isinstance(v, int):
-                raise WaterLevelReadError(
-                    f"Malformed I2C byte at section {i}: expected int 0..255, got {type(v).__name__}")
-            if not (0 <= v <= 0xFF):
-                raise WaterLevelReadError(f"I2C byte out of range at section {i}: {v}")
+        # split like before (unchanged)
+        low_data = data[:8]
+        high_data = data[8:]
 
-        # Arduino example threshold
+        for i, v in enumerate(data):
+            if not isinstance(v, int) or not (0 <= v <= 255):
+                raise WaterLevelReadError(f"Malformed I2C byte at index {i}: {v}")
+
         THRESHOLD = 100
         touch_val = 0
-        for i, val in enumerate(sections):
+        for i, val in enumerate(data):
             if val > THRESHOLD:
                 touch_val |= (1 << i)
 
-        # Count consecutive triggered sections from the bottom (LSB)
         trig_sections = 0
-        tmp_val = touch_val
-        while tmp_val & 0x01:
+        tmp = touch_val
+        while tmp & 0x01:
             trig_sections += 1
-            tmp_val >>= 1
+            tmp >>= 1
 
-        # Convert to millimetres; default 20 sections => 100 mm total => 5 mm/section
         mm_per_section = 5.0
         level_mm = trig_sections * mm_per_section
 
@@ -225,7 +204,6 @@ class I2CWaterLevelSensor(BaseSensor):
         }
 
     def read(self) -> dict:
-        """Public read API. Returns canonical sensor key for collector mapping."""
         raw = self._collect_raw()
         return {"water_level": raw["level_mm"]}
 
