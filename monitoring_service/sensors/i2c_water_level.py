@@ -1,28 +1,43 @@
 from monitoring_service.sensors.base import BaseSensor
 from smbus3 import SMBus, i2c_msg
 
+
 class WaterLevelInitError(Exception):
     pass
+
 
 class WaterLevelValueError(Exception):
     pass
 
+
 class WaterLevelReadError(Exception):
     pass
 
+
 class I2CWaterLevelSensor(BaseSensor):
-    # *** CHANGED *** removed high_address from required fields
+    """
+    Updated driver for the Grove Water Level Sensor v1.0 (I2C).
+    Reads 8 pad values from a *single* I2C address and computes
+    the percentage of submerged pads.
+    """
+
     REQUIRED_KWARGS = ["id", "bus", "low_address"]
     ACCEPTED_KWARGS = ["id", "bus", "low_address", "high_address"]
     COERCERS = {"bus": int, "low_address": int, "high_address": int}
 
-    def __init__(self, *, id: str,
-                 bus: int | str,
-                 low_address: int | str,
-                 high_address: int | str | None = None,   # *** CHANGED ***
-                 kind: str = "WaterLevel",
-                 units: str = "mm"):
-        self.sensor = None
+    NUM_PADS = 8
+    DEFAULT_WET_THRESHOLD = 150  # below = wet
+
+    def __init__(
+        self,
+        *,
+        id: str,
+        bus: int | str,
+        low_address: int | str,
+        high_address: int | str = 0,
+        kind: str = "WaterLevel",
+        units: str = "percent"
+    ):
         self.sensor_name = "GroveWaterLevel"
         self.sensor_kind = kind
         self.sensor_units = units
@@ -30,13 +45,13 @@ class I2CWaterLevelSensor(BaseSensor):
         self.sensor_id = id
         self.id = id
 
-        # --- bus coercion ---
+        # --- Bus coercion ---
         if isinstance(bus, int):
             coerced_bus = bus
         elif isinstance(bus, str):
             try:
                 coerced_bus = int(bus, 0)
-            except (ValueError, TypeError) as e:
+            except Exception as e:
                 raise WaterLevelInitError(f"Invalid I2C bus string: {bus}") from e
         else:
             raise WaterLevelInitError(f"Unsupported type for I2C bus: {type(bus).__name__}")
@@ -46,37 +61,33 @@ class I2CWaterLevelSensor(BaseSensor):
 
         self.bus = coerced_bus
 
-        # --- address coercion helper ---
+        # --- Address coercion (we only use low_address) ---
         def _coerce_addr(val, name):
-            if val is None:
-                return None   # *** CHANGED ***
             if isinstance(val, int):
                 coerced = val
             elif isinstance(val, str):
                 try:
                     coerced = int(val, 0)
-                except (ValueError, TypeError) as e:
+                except Exception as e:
                     raise WaterLevelInitError(f"Invalid I2C address string for {name}: {val}") from e
             else:
                 raise WaterLevelInitError(f"Unsupported type for I2C address {name}: {type(val).__name__}")
 
             if not (0x01 <= coerced <= 0x7F):
-                raise WaterLevelInitError(f"I2C address {hex(coerced)} for {name} out of 7-bit range 0x01–0x7F")
+                raise WaterLevelInitError(
+                    f"I2C address {hex(coerced)} for {name} out of 7-bit range 0x01–0x7F"
+                )
             return coerced
 
-        self.low_address = _coerce_addr(low_address, "low_address")
+        self.device_address = _coerce_addr(low_address, "low_address")
 
-        # *** CHANGED *** allow high_address to be None
-        self.high_address = _coerce_addr(high_address, "high_address") if high_address is not None else None
+        # high_address unused, but preserved for backward compatibility
+        self.high_address = high_address
 
-        self.consecutive_failures = 0
-        self.last_success_ts = None
-
-        # open bus and resolve address
+        # Open bus
         self._check_bus()
-        self._check_address()
 
-    # --- Properties ---------------------------------------------------------
+    # ----------------------------------------------------------------------
 
     @property
     def name(self) -> str:
@@ -90,88 +101,68 @@ class I2CWaterLevelSensor(BaseSensor):
     def units(self) -> str:
         return self.sensor_units
 
-    # --- Bus / Address helpers ---------------------------------------------
+    # ----------------------------------------------------------------------
 
     def _check_bus(self):
+        """Open /dev/i2c-{bus} and keep the handle."""
         try:
             self._smbus = SMBus(self.bus)
-        except FileNotFoundError as e:
-            raise WaterLevelInitError(f"I2C bus {self.bus} not found (no /dev/i2c-{self.bus})") from e
-        except PermissionError as e:
-            raise WaterLevelInitError(f"Permission denied opening I2C bus {self.bus}") from e
-        except OSError as e:
-            raise WaterLevelInitError(f"Failed to open I2C bus {self.bus}: {e}") from e
+        except Exception as e:
+            raise WaterLevelInitError(f"Failed to open I2C bus {self.bus}: {e}")
 
-    def _check_address(self):
-        """Detect the I2C address for the V1.0 Grove Water Level Sensor."""
-        bus = SMBus(self.bus)
+    # ----------------------------------------------------------------------
 
-        # V1.0 sensor only responds at 0x77
-        possible = [0x77]
-
-        for addr in possible:
-            try:
-                bus.read_byte(addr)  # probe
-                self.addr_low = addr
-                bus.close()
-                return
-            except Exception:
-                continue
-
-            bus.close()
-            raise WaterLevelReadError("No Grove Water Level sensor detected at address 0x77")
-
-
-    # --- Reading -----------------------------------------------------------
-
-    def _collect_raw(self) -> dict:
-        """Read 8 bytes from the V1.0 Grove Water Level Sensor."""
-
-        if not getattr(self, "_smbus", None):
-            self._smbus = SMBus(self.bus)
-
-        if not hasattr(self, "addr_low"):
-            raise WaterLevelReadError("Address not initialised; call _check_address() first")
-
+    def _read_raw_block(self) -> list[int]:
+        """
+        Reads 9 bytes from the device.
+        Byte layout (Grove v1.0):
+          [0..7] = 8 pad values
+          [8]    = unused / checksum / not required
+        """
         try:
-            msg = i2c_msg.read(self.addr_low, 8)
-            self._smbus.i2c_rdwr(msg)
-            data = list(msg)
+            # Read 9 bytes starting at register 0x00
+            data = self._smbus.read_i2c_block_data(self.device_address, 0x00, 9)
+            print("DEBUG: raw=", data)
+            return data
         except Exception as e:
             raise WaterLevelReadError(
-                f"I2C read failed from {hex(self.addr_low)}: {e}"
-            ) from e
+                f"I2C read failed at address {hex(self.device_address)}: {e}"
+            )
 
-        print("DEBUG RAW:", data)  # VERY IMPORTANT for tuning
+    # ----------------------------------------------------------------------
 
-        # Observed in your earlier logs:
-        # Dry pads ≈ 230–255
-        # Wet pads ≈ 3–120
-        DRY_THRESHOLD = 180  # will tune based on your output
-
-        wet = [v < DRY_THRESHOLD for v in data]
-
-        # Count contiguous wet pads from bottom
-        triggered = 0
-        for w in wet:
-            if w:
-                triggered += 1
+    def _count_wet_pads(self, pad_values: list[int]) -> int:
+        """
+        Counts pads that are below threshold, bottom to top,
+        stopping at first dry pad.
+        """
+        threshold = self.DEFAULT_WET_THRESHOLD
+        wet = 0
+        for v in pad_values:
+            if v < threshold:
+                wet += 1
             else:
                 break
+        print("DEBUG: wet=", wet)
+        return wet
 
-        # V1.0 has 8 pads → ~100 mm → ~12.5mm per pad
-        mm_per_section = 12.5
-        level_mm = triggered * mm_per_section
-
-        return {
-            "raw_bytes": data,
-            "sections_triggered": triggered,
-            "level_mm": level_mm
-        }
+    # ----------------------------------------------------------------------
 
     def read(self) -> dict:
-        raw = self._collect_raw()
-        return {"water_level": raw["level_mm"]}
+        """
+        Public read API. Matches the project convention of returning
+        a dict {key: value} for upstream telemetry collection.
+        """
+        raw = self._read_raw_block()
+        pad_values = raw[0:8]
+
+        wet = self._count_wet_pads(pad_values)
+        percent = (wet / self.NUM_PADS) * 100.0
+
+        print("DEBUG: percent=", percent)
+        return {"water_level": round(percent, 2)}
+
+    # ----------------------------------------------------------------------
 
     def _shutdown(self):
         try:
