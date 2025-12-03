@@ -103,103 +103,69 @@ class I2CWaterLevelSensor(BaseSensor):
             raise WaterLevelInitError(f"Failed to open I2C bus {self.bus}: {e}") from e
 
     def _check_address(self):
-        """
-        *** CHANGED ***
-        v1.0 Grove Water Level uses ONE address (0x77).
-        Ignore high_address and only probe low_address.
-        """
-        if not getattr(self, "_smbus", None):
-            raise WaterLevelInitError("I2C bus not open before checking address")
+        """Detect the I2C address for the V1.0 Grove Water Level Sensor."""
+        bus = SMBus(self.bus)
 
-        candidates = []
+        # V1.0 sensor only responds at 0x77
+        possible = [0x77]
 
-        # user-provided low_address
-        candidates.append(self.low_address)
-
-        # right-shift variant if user gave 8-bit
-        try:
-            candidates.append(self.low_address >> 1)
-        except Exception:
-            pass
-
-        # fallback known address for v1.0: 0x77
-        candidates.append(0x77)
-
-        tried = []
-        for addr in candidates:
+        for addr in possible:
             try:
-                addr_i = int(addr) & 0x7F
-            except Exception:
-                continue
-
-            tried.append(addr_i)
-
-            # probe single address
-            try:
-                self._smbus.i2c_rdwr(i2c_msg.read(addr_i, 1))
-                self.addr = addr_i     # *** CHANGED ***
+                bus.read_byte(addr)  # probe
+                self.addr_low = addr
+                bus.close()
                 return
             except Exception:
                 continue
 
-        raise WaterLevelInitError(f"Could not contact water-level device on bus {self.bus}. Tried: {tried}")
+            bus.close()
+            raise WaterLevelReadError("No Grove Water Level sensor detected at address 0x77")
+
 
     # --- Reading -----------------------------------------------------------
 
     def _collect_raw(self) -> dict:
-        """
-        *** CHANGED ***
-        v1.0 Grove Water Level returns 20 bytes from ONE I2C address.
-        First 8 bytes = low block
-        Next 12 bytes = high block
-        """
+        """Read 8 bytes from the V1.0 Grove Water Level Sensor."""
+
         if not getattr(self, "_smbus", None):
             self._smbus = SMBus(self.bus)
 
-        if not hasattr(self, "addr"):
-            raise WaterLevelReadError("Sensor address not resolved; call _check_address() first")
+        if not hasattr(self, "addr_low"):
+            raise WaterLevelReadError("Address not initialised; call _check_address() first")
 
         try:
-            msg = i2c_msg.read(self.addr, 20)          # *** CHANGED ***
+            msg = i2c_msg.read(self.addr_low, 8)
             self._smbus.i2c_rdwr(msg)
             data = list(msg)
         except Exception as e:
             raise WaterLevelReadError(
-                f"I2C read failed from {hex(getattr(self, 'addr', 0))}: {e}"
+                f"I2C read failed from {hex(self.addr_low)}: {e}"
             ) from e
 
-        if len(data) != 20:
-            raise WaterLevelReadError(
-                f"Truncated I2C read: expected 20 bytes, got {len(data)}"
-            )
+        print("DEBUG RAW:", data)  # VERY IMPORTANT for tuning
 
-        # split like before (unchanged)
-        low_data = data[:8]
-        high_data = data[8:]
+        # Observed in your earlier logs:
+        # Dry pads ≈ 230–255
+        # Wet pads ≈ 3–120
+        DRY_THRESHOLD = 180  # will tune based on your output
 
-        for i, v in enumerate(data):
-            if not isinstance(v, int) or not (0 <= v <= 255):
-                raise WaterLevelReadError(f"Malformed I2C byte at index {i}: {v}")
+        wet = [v < DRY_THRESHOLD for v in data]
 
-        THRESHOLD = 100
-        touch_val = 0
-        for i, val in enumerate(data):
-            if val > THRESHOLD:
-                touch_val |= (1 << i)
+        # Count contiguous wet pads from bottom
+        triggered = 0
+        for w in wet:
+            if w:
+                triggered += 1
+            else:
+                break
 
-        trig_sections = 0
-        tmp = touch_val
-        while tmp & 0x01:
-            trig_sections += 1
-            tmp >>= 1
-
-        mm_per_section = 5.0
-        level_mm = trig_sections * mm_per_section
+        # V1.0 has 8 pads → ~100 mm → ~12.5mm per pad
+        mm_per_section = 12.5
+        level_mm = triggered * mm_per_section
 
         return {
-            "raw_bytes_low": low_data,
-            "raw_bytes_high": high_data,
-            "sections_triggered": trig_sections,
+            "raw_bytes": data,
+            "sections_triggered": triggered,
             "level_mm": level_mm
         }
 
