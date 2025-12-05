@@ -172,15 +172,25 @@ class WaterFlowSensor(GPIOSensor):
     def _get_instant_and_smoothed(self) -> Tuple[float, float]:
         """
         Compute and return (flow_instant_l_min, flow_smoothed_l_min).
+        Trims old ticks even when no new pulses have arrived.
         Uses pigpio.tickDiff to handle wraparound safely.
         """
         if self.sensor is None:
             raise WaterFlowReadError("pigpio not initialized")
 
+        # Current tick for trimming (microseconds)
+        now = self.sensor.get_current_tick()
+
         with self.ticks_lock:
+            # Trim based on sliding window
+            cutoff_us = int(self.sliding_window_s * 1_000_000)
+            while self.ticks and pigpio.tickDiff(self.ticks[0], now) > cutoff_us:
+                self.ticks.popleft()
+
             n = len(self.ticks)
             if n < 2:
                 return 0.0, 0.0
+
             first = self.ticks[0]
             last = self.ticks[-1]
             total_time_us = pigpio.tickDiff(first, last)
@@ -189,18 +199,16 @@ class WaterFlowSensor(GPIOSensor):
 
             pulses_per_sec = (n - 1) / (total_time_us / 1_000_000)
 
-            # high-resolution instant freq from last two ticks if available
-            if n >= 2:
-                last_two_dt = pigpio.tickDiff(self.ticks[-2], self.ticks[-1])
-                if last_two_dt > 0:
-                    inst_freq = 1_000_000 / last_two_dt
-                else:
-                    inst_freq = pulses_per_sec
+            # Instant freq from the last two ticks
+            last_two_dt = pigpio.tickDiff(self.ticks[-2], self.ticks[-1])
+            if last_two_dt > 0:
+                inst_freq = 1_000_000 / last_two_dt
             else:
                 inst_freq = pulses_per_sec
 
             flow_smoothed = pulses_per_sec / float(self.calibration_constant)
             flow_instant = inst_freq / float(self.calibration_constant)
+
             return float(flow_instant), float(flow_smoothed)
 
     # --- Public read() -----------------------------------------------------

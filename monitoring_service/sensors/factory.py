@@ -44,7 +44,6 @@ class SensorFactory:
             self._registry = {
                 "ds18b20": ds18b20.DS18B20Sensor,
                 "dht22": dht22.DHT22Sensor,
-                "water_level": i2c_water_level.I2CWaterLevelSensor,
                 "water_flow": water_flow.WaterFlowSensor,
             }
         else:
