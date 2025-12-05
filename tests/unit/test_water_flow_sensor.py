@@ -32,32 +32,32 @@ class FakeCallback:
 class FakePi:
     def __init__(self, connected=True):
         self.connected = connected
-        self.modes = {}
-        self.pull = {}
-        self.glitch = {}
-        self._callbacks = {}
         self.callback_calls = []
-        # allow tickDiff function to be provided externally if needed
+        self._tick_start = int(time.time() * 1_000_000)
+
+    def callback(self, pin, edge, func):
+        self.callback_calls.append((pin, edge, func))
+        class CB:
+            def cancel(self):
+                pass
+        return CB()
 
     def set_mode(self, pin, mode):
-        self.modes[pin] = mode
+        pass
 
     def set_pull_up_down(self, pin, pud):
-        self.pull[pin] = pud
+        pass
 
-    def set_glitch_filter(self, pin, us):
-        self.glitch[pin] = us
-
-    def callback(self, pin, edge, fn):
-        # register a callback handle that calls the function when triggered by tests
-        cb = FakeCallback()
-        self._callbacks[pin] = (edge, fn, cb)
-        self.callback_calls.append((pin, edge, fn))
-        return cb
+    def set_glitch_filter(self, pin, glitch_us):
+        pass
 
     def stop(self):
-        # simulate stopping pigpio connection
         self.connected = False
+
+    def get_current_tick(self):
+        # Return a "current" tick in microseconds
+        # Ensure it’s beyond any ticks you inject in the test
+        return int(time.time() * 1_000_000) % (2**32)
 
 
 # monkeypatch helper to feed ticks to the sensor instance
@@ -163,6 +163,8 @@ def test_waterflow_get_flow_single_tick(monkeypatch):
 
 def test_waterflow_get_flow_valid_sequence(monkeypatch):
     fake_pi = FakePi(connected=True)
+    fake_pi._current_tick = 700_000
+    fake_pi.get_current_tick = lambda: fake_pi._current_tick
     monkeypatch.setattr("pigpio.pi", lambda: fake_pi)
     s = WaterFlowSensor(id="f1", pin=17, calibration_constant=4.5)
     # ticks spaced 200000us apart => 5 Hz
