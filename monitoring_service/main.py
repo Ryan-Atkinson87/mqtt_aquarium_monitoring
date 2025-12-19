@@ -1,12 +1,11 @@
 """
 main.py
 
-Bootstraps the monitoring service:
-- loads config
-- sets up logging
-- builds sensor bundles via SensorFactory
-- starts MonitoringAgent with TelemetryCollector + AttributesCollector + TBClientWrapper
+Bootstrap entry point for the monitoring service. Loads configuration, sets up
+logging, constructs sensors and collectors, initializes the ThingsBoard client,
+and starts the monitoring agent.
 """
+
 
 import logging
 from monitoring_service.config_loader import ConfigLoader
@@ -19,6 +18,13 @@ from monitoring_service.agent import MonitoringAgent
 
 
 def main():
+    """
+    Initialize and start the monitoring service.
+
+    This function loads configuration, configures logging, builds sensors via the
+    SensorFactory, wires collectors and the ThingsBoard client, and starts the
+    MonitoringAgent. The function blocks indefinitely once the agent is started.
+    """
     # Minimal bootstrap logger (before config-driven logging is ready)
     bootstrap_logger = logging.getLogger("bootstrap")
     bootstrap_logger.setLevel(logging.INFO)
