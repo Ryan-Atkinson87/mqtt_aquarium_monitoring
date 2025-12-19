@@ -1,13 +1,21 @@
 """
 config_loader.py
 
-Loads environment + JSON configuration and exposes a merged dict.
-- Env: .env (ACCESS_TOKEN, THINGSBOARD_SERVER)
-- JSON: config.json (path via CONFIG_PATH/AQUARIUM_CONFIG or common defaults)
+Load configuration from environment variables and a required JSON config file.
+The loader validates required values and exposes a merged configuration
+dictionary via as_dict().
+
+A config.json file must be present. Startup fails if the file cannot be located
+or loaded.
+
+Classes:
+    ConfigLoader
 
 Usage:
-    config = ConfigLoader(logger).as_dict()
+    loader = ConfigLoader(logger)
+    config = loader.as_dict()
 """
+# TODO: config loader doesn't currently fail when no config is available, fix this.
 
 from __future__ import annotations
 
@@ -20,7 +28,11 @@ from dotenv import load_dotenv
 
 
 def _safe_log(logger, level: str, msg: str) -> None:
-    """Log without exploding if logger is None or missing methods."""
+    """
+    Log a message using the provided logger while safely handling missing or
+    nonstandard logger implementations.
+    """
+
     if logger is None:
         return
     fn = getattr(logger, level.lower(), None)
@@ -34,12 +46,16 @@ def _safe_log(logger, level: str, msg: str) -> None:
 
 
 def _project_root() -> Path:
-    # monitoring_service/ -> parent is repo root
-    return Path(__file__).resolve().parent.parent
+    """
+    Return the project root directory based on the current file location.
+    """
 
 
 def _find_config_path(logger=None) -> Optional[Path]:
-    """Resolve config.json path from env or sensible defaults."""
+    """
+    Locate config.json based on environment variables or common fallback
+    locations. Returns the resolved path or None if not found.
+    """
     # 1) Env overrides
     for key in ("CONFIG_PATH", "AQUARIUM_CONFIG"):
         p = os.environ.get(key)
@@ -66,6 +82,11 @@ def _find_config_path(logger=None) -> Optional[Path]:
 
 
 def _load_json_config(path: Optional[Path], logger=None) -> Dict[str, Any]:
+    """
+        Load JSON configuration from the given file path.
+
+        Returns an empty dict if the file cannot be read.
+        """
     if not path:
         return {}
     try:
@@ -79,11 +100,17 @@ def _load_json_config(path: Optional[Path], logger=None) -> Dict[str, Any]:
 
 class ConfigLoader:
     """
-    Loads env + JSON, validates required fields, and returns a merged dict via as_dict().
+    class ConfigLoader:
+    Load and validate configuration from environment variables and a required
+    JSON config file.
 
-    Required env:
-      - ACCESS_TOKEN
-      - THINGSBOARD_SERVER
+    Environment:
+        ACCESS_TOKEN
+        THINGSBOARD_SERVER
+
+    JSON:
+        A valid config.json file is required and must define core configuration
+        values such as device_name and mount_path.
 
     JSON keys (examples):
       - poll_period (int ≥ 1)
@@ -92,8 +119,16 @@ class ConfigLoader:
       - log_level (str, default "INFO")
       - sensors (list)  <-- merged in; not strictly required here
     """
+    # TODO: config loader doesn't currently fail when no config is available, fix this.
 
     def __init__(self, logger):
+        """
+        Initialize the loader, read environment variables, load JSON config, and
+        parse core configuration fields.
+
+        Args:
+            logger (Logger): Logger instance for diagnostic output.
+        """
         load_dotenv()
         self.logger = logger
 
@@ -116,8 +151,8 @@ class ConfigLoader:
 
     def as_dict(self) -> Dict[str, Any]:
         """
-        Return the merged configuration dict.
-        Env values win if both sources provide the same key.
+        Return the merged configuration dictionary with environment variables
+        taking precedence over JSON values.
         """
         merged: Dict[str, Any] = {
             "token": self.token,
@@ -142,6 +177,12 @@ class ConfigLoader:
     # ----------------- internal validation/parsers -----------------
 
     def _validate_or_raise(self) -> None:
+        """
+        Validate that required environment variables are present.
+
+        Raises:
+            EnvironmentError: If required environment variables are missing.
+        """
         missing = []
         if not self.token:
             missing.append("ACCESS_TOKEN")
@@ -153,6 +194,15 @@ class ConfigLoader:
             raise EnvironmentError(msg)
 
     def _get_poll_period(self) -> int:
+        """
+        Parse and return the poll_period value from the JSON config.
+
+        Returns:
+            int: Polling interval in seconds.
+
+        Raises:
+            ValueError: If poll_period is invalid.
+        """
         raw_value = self.config.get("poll_period", 60)
         try:
             poll = int(raw_value)
@@ -164,6 +214,16 @@ class ConfigLoader:
             raise
 
     def _get_device_name(self) -> str:
+        """
+        Retrieve and validate the device_name from the JSON config.
+
+        Returns:
+            str: The configured device name.
+
+        Raises:
+            KeyError: If device_name is missing.
+            ValueError: If device_name is invalid.
+        """
         try:
             val = self.config["device_name"]
             if not isinstance(val, str) or not val.strip():
@@ -177,6 +237,16 @@ class ConfigLoader:
             raise
 
     def _get_mount_path(self) -> str:
+        """
+        Retrieve and validate the mount_path from the JSON config.
+
+        Returns:
+            str: The configured mount path.
+
+        Raises:
+            KeyError: If mount_path is missing.
+            ValueError: If mount_path is invalid.
+        """
         try:
             val = self.config["mount_path"]
             if not isinstance(val, str) or not val:
@@ -190,6 +260,12 @@ class ConfigLoader:
             raise
 
     def _get_log_level(self) -> str:
+        """
+        Retrieve the log_level from the JSON config or default to "INFO".
+
+        Returns:
+            str: The configured logging level.
+        """
         val = self.config.get("log_level", "INFO")
         try:
             return str(val)
