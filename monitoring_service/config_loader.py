@@ -49,6 +49,7 @@ def _project_root() -> Path:
     """
     Return the project root directory based on the current file location.
     """
+    return Path(__file__).resolve().parent.parent
 
 
 def _find_config_path(logger=None) -> Optional[Path]:
