@@ -1,19 +1,15 @@
-# factory.py
-
 """
-What factory.py owns
+factory.py
 
-A registry mapping sensor type → driver class (e.g., "ds18b20" → DS18B20Sensor).
-
-Logic to build a driver from a single validated config entry.
-
-Validation that metadata (keys, calibration, ranges, smoothing, interval) is coherent.
-
-It returns a bundle that the collector can use without knowing driver internals.
+Provides the SensorFactory and SensorBundle abstractions. The factory constructs
+sensor drivers from configuration data, validates associated metadata, and
+returns SensorBundle objects that can be consumed by the telemetry collector
+without knowledge of driver internals.
 """
+
 
 from typing import Optional
-from monitoring_service.sensors import ds18b20, dht22, i2c_water_level, water_flow
+from monitoring_service.sensors import ds18b20, dht22, water_flow
 from dataclasses import dataclass, field
 from monitoring_service.sensors.base import BaseSensor
 from monitoring_service.exceptions import (InvalidSensorConfigError, UnknownSensorTypeError, FactoryError)
@@ -25,6 +21,13 @@ logger = logging.getLogger(f"{PACKAGE_LOGGER_NAME}.{__name__.split('.')[-1]}")
 
 @dataclass
 class SensorBundle:
+    """
+    Container object holding a sensor driver and its associated metadata.
+
+    A SensorBundle combines the constructed driver instance with configuration
+    used during telemetry processing, such as key mapping, calibration, smoothing,
+    range limits, and read interval.
+    """
     # The constructed driver (e.g., DS18B20Sensor())
     driver: BaseSensor
     # Maps driver outputs → canonical keys
@@ -39,6 +42,13 @@ class SensorBundle:
     interval: Optional[int] = None
 
 class SensorFactory:
+    """
+    Construct sensor drivers from configuration and return SensorBundle objects.
+
+    The factory maintains a registry mapping sensor type strings to driver
+    classes, validates configuration data, and instantiates drivers with only
+    the parameters they accept.
+    """
     def __init__(self, registry: dict[str, type[BaseSensor]] | None = None):
         if registry is None:
             self._registry = {
@@ -51,8 +61,11 @@ class SensorFactory:
 
     def register(self, sensor_type: str, driver_class: type[BaseSensor]):
         """
-        Adds/overrides an entry in the registry.
-        Use at startup to register built-in drivers (e.g., DS18B20), and later for additional drivers.
+        Register or override a sensor driver class for a given sensor type.
+
+        Args:
+            sensor_type (str): Sensor type identifier used in configuration.
+            driver_class (type[BaseSensor]): Driver class implementing the sensor.
         """
         if not isinstance(sensor_type, str):
             raise InvalidSensorConfigError("sensor_type must be a string")
@@ -75,17 +88,15 @@ class SensorFactory:
 
     def build(self, sensor_config):
         """
-        Input: one validated sensor config block (dict-like).
-        Steps (conceptual):
-        - Extract type, keys, calibration, ranges, smoothing, interval, plus driver-specific params (id, pins, path, etc.).
-        - Lookup driver class in the registry; if missing → UnknownSensorTypeError.
-        - Check keys exists and is non-empty; else → InvalidSensorConfigError.
-        - Validate that calibration/ranges/smoothing reference only canonical keys present in keys.values(). If not → InvalidSensorConfigError.
-        - Validate driver-declared required fields (REQUIRED_KWARGS or REQUIRED_ANY_OF). If missing → InvalidSensorConfigError.
-        - Construct the driver with only the params it needs (don’t pass the whole config blindly).
-        - Normalize optional metadata: if calibration/ranges/smoothing/interval are absent, set to {}/None.
-        - Return a SensorBundle with the driver + metadata.
-        Output: a ready-to-use SensorBundle.
+        Build a single SensorBundle from a sensor configuration dictionary.
+
+        The configuration is validated, the appropriate driver class is resolved
+        from the registry, and the driver is instantiated with accepted and
+        coerced parameters. Metadata such as key mapping, calibration, smoothing,
+        ranges, and interval are validated and attached to the resulting bundle.
+
+        Returns:
+            SensorBundle: A fully constructed sensor bundle.
         """
 
         sensor_type = sensor_config.get("type")
@@ -235,11 +246,14 @@ class SensorFactory:
 
     def build_all(self, config) -> list[SensorBundle]:
         """
-        Build all sensors from either:
-          - a list of sensor config dicts, or
-          - a dict containing a "sensors" list.
-        Returns a list of successfully built SensorBundle objects.
-        Any sensor that fails to build is logged and skipped.
+        Build sensor bundles from a list of sensor configurations or a dictionary
+        containing a 'sensors' list.
+
+        Each sensor configuration is processed independently. Sensors that fail
+        validation or construction are logged and skipped.
+
+        Returns:
+            list[SensorBundle]: Successfully built sensor bundles.
         """
         # 1) Normalise input to a list of sensor configs
         if isinstance(config, dict) and "sensors" in config:
