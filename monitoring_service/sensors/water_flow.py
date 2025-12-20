@@ -25,12 +25,27 @@ from typing import Tuple, Dict
 from monitoring_service.sensors.gpio_sensor import GPIOSensor, GPIOValueError
 
 class WaterFlowInitError(Exception):
+    """
+    Raised when the Water Flow sensor cannot be initialised.
+    """
     pass
 
 class WaterFlowValueError(Exception):
+    """
+    Raised when the Water Flow sensor is misconfigured or given invalid values.
+    """
     pass
 
 class WaterFlowReadError(Exception):
+    """
+    Raised when reading data from the Water Flow sensor fails.
+    """
+    pass
+
+class WaterFlowStopError(Exception):
+    """
+    Raised when stopping the Water Flow sensor fails.
+    """
     pass
 
 class WaterFlowSensor(GPIOSensor):
@@ -46,6 +61,7 @@ class WaterFlowSensor(GPIOSensor):
         - read() blocks briefly to allow pulse accumulation
         - stop() should be called during shutdown to release pigpio resources
     """
+    # Factory uses these for validation + filtering.
     REQUIRED_KWARGS = ["id", "pin"]
     ACCEPTED_KWARGS = [
         "id",
@@ -60,7 +76,7 @@ class WaterFlowSensor(GPIOSensor):
     def __init__(
         self,
         *,
-        id: str | None = None,
+        identity: str | None = None,
         pin: int | None = None,
         sample_window: float | None = 1.0,
         sliding_window_s: float | None = 3.0,
@@ -69,37 +85,32 @@ class WaterFlowSensor(GPIOSensor):
         kind: str = "Flow",
         units: str = "l/min",
     ):
-        # metadata
         self.sensor_name = "WaterFlow"
         self.sensor_kind = kind
         self.sensor_units = units
 
-        # configuration
-        self.sensor_id: str | None = id
+        self.sensor_id: str | None = identity
         self.pin: int | None = pin
-        # ensure numeric types
+
         self.sample_window: float = float(sample_window) if sample_window is not None else 1.0
         self.sliding_window_s: float = float(sliding_window_s) if sliding_window_s is not None else 3.0
         self.glitch_us: int = int(glitch_us) if glitch_us is not None else 200
         self.calibration_constant: float = float(calibration_constant) if calibration_constant is not None else 4.5
 
-        # runtime fields
-        self.sensor: pigpio.pi | None = None  # pigpio connection (kept open)
-        self._cb = None                         # callback handle
-        self.ticks = collections.deque()        # store pigpio ticks (µs)
+        self.sensor: pigpio.pi | None = None
+        self._callback = None
+        self.ticks = collections.deque()
         self.ticks_lock = threading.Lock()
 
-        # id convenience
         self.id = self.sensor_id
 
-        # validate and initialise
         self._check_pin()
         self._init_pigpio()
         self._configure_pigpio()
-        # start collecting immediately; if you prefer to control lifecycle call start() yourself
         self.start()
 
     # --- Properties ---------------------------------------------------------
+
     @property
     def name(self) -> str:
         return self.sensor_name
@@ -113,6 +124,7 @@ class WaterFlowSensor(GPIOSensor):
         return self.sensor_units
 
     # --- Internals ----------------------------------------------------------
+
     def _check_pin(self) -> None:
         """
         Use the generic GPIO check but re-raise as driver-specific exception
@@ -133,7 +145,6 @@ class WaterFlowSensor(GPIOSensor):
             raise WaterFlowInitError(f"Error creating pigpio instance: {e}") from e
 
         if not getattr(self.sensor, "connected", False):
-            # ensure we raise a clear init error if pigpiod not available
             raise WaterFlowInitError("Unable to connect to pigpiod. Is the pigpiod daemon running?")
 
     def _configure_pigpio(self) -> None:
@@ -145,7 +156,6 @@ class WaterFlowSensor(GPIOSensor):
                 raise WaterFlowInitError("pigpio not initialized")
             self.sensor.set_mode(self.pin, pigpio.INPUT)
             self.sensor.set_pull_up_down(self.pin, pigpio.PUD_UP)
-            # set_glitch_filter is the correct API for microsecond-level filtering
             self.sensor.set_glitch_filter(self.pin, int(self.glitch_us))
         except Exception as e:
             raise WaterFlowInitError(f"Error configuring pigpio: {e}") from e
@@ -161,30 +171,28 @@ class WaterFlowSensor(GPIOSensor):
             self._init_pigpio()
             self._configure_pigpio()
 
-        if self._cb is None:
-            # register callback on falling edge; callback keeps work tiny
-            self._cb = self.sensor.callback(self.pin, pigpio.FALLING_EDGE, self._call_back)
+        if self._callback is None:
+            self._callback = self.sensor.callback(self.pin, pigpio.FALLING_EDGE, self._call_back)
 
     def stop(self) -> None:
         """
         Cancel callback and stop pigpio connection. Safe to call multiple times.
         """
         try:
-            if self._cb is not None:
+            if self._callback is not None:
                 try:
-                    self._cb.cancel()
-                except Exception:
-                    pass
-                self._cb = None
+                    self._callback.cancel()
+                except Exception as e:
+                    raise WaterFlowStopError(f"Error cancelling callback: {e}") from e
+                self._callback = None
             if self.sensor is not None:
                 try:
                     self.sensor.stop()
-                except Exception:
-                    pass
+                except Exception as e:
+                    raise WaterFlowStopError(f"Error stopping pigpio: {e}") from e
                 self.sensor = None
-        except Exception:
-            # stop should not raise to callers
-            pass
+        except Exception as e:
+            raise WaterFlowStopError(f"Error stopping: {e}") from e
 
     def _call_back(self, gpio: int, level: int, tick: int) -> None:
         """
@@ -197,7 +205,6 @@ class WaterFlowSensor(GPIOSensor):
             return
         with self.ticks_lock:
             self.ticks.append(tick)
-            # trim older ticks outside sliding window
             cutoff_us = int(self.sliding_window_s * 1_000_000)
             while self.ticks and pigpio.tickDiff(self.ticks[0], tick) > cutoff_us:
                 self.ticks.popleft()
@@ -213,11 +220,9 @@ class WaterFlowSensor(GPIOSensor):
         if self.sensor is None:
             raise WaterFlowReadError("pigpio not initialized")
 
-        # Current tick for trimming (microseconds)
         now = self.sensor.get_current_tick()
 
         with self.ticks_lock:
-            # Trim based on sliding window
             cutoff_us = int(self.sliding_window_s * 1_000_000)
             while self.ticks and pigpio.tickDiff(self.ticks[0], now) > cutoff_us:
                 self.ticks.popleft()
@@ -234,7 +239,6 @@ class WaterFlowSensor(GPIOSensor):
 
             pulses_per_sec = (n - 1) / (total_time_us / 1_000_000)
 
-            # Instant freq from the last two ticks
             last_two_dt = pigpio.tickDiff(self.ticks[-2], self.ticks[-1])
             if last_two_dt > 0:
                 inst_freq = 1_000_000 / last_two_dt
@@ -247,6 +251,7 @@ class WaterFlowSensor(GPIOSensor):
             return float(flow_instant), float(flow_smoothed)
 
     # --- Public read() -----------------------------------------------------
+
     def read(self) -> Dict[str, float]:
         """
         Ensure callback is running, allow sample_window seconds for accumulation,
@@ -258,11 +263,8 @@ class WaterFlowSensor(GPIOSensor):
         if self.sensor is None:
             raise WaterFlowReadError("pigpio not initialized")
 
-        # ensure callback running (idempotent)
         self.start()
 
-        # allow pulses to accumulate for sample_window seconds
-        # this keeps compatibility with your previous blocking read behaviour
         time.sleep(float(self.sample_window))
 
         try:
@@ -275,7 +277,4 @@ class WaterFlowSensor(GPIOSensor):
             raise WaterFlowReadError(f"Error reading flow: {e}") from e
 
     def __del__(self):
-        try:
-            self.stop()
-        except Exception:
-            pass
+        self.stop()

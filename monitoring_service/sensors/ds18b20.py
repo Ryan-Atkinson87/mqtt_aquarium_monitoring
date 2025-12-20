@@ -39,47 +39,35 @@ class DS18B20Sensor(BaseSensor):
 
     # Factory uses these for validation + filtering.
     REQUIRED_ANY_OF = [{"id"}, {"path"}]
-    ACCEPTED_KWARGS = {"id", "path"}  # keep tight; we only accept what we handle
+    ACCEPTED_KWARGS = {"id", "path"}
 
     def __init__(self, *, id: str | None = None, path: str | None = None,
                  kind: str = "Temperature", units: str = "C"):
-        # Public-ish meta (used in logs/UI)
         self.sensor_name = "ds18b20"
         self.sensor_kind = kind
         self.sensor_units = units
 
-        # Limits for sanity (not hard validation here)
         self.UPPER_LIMIT = 125
         self.LOWER_LIMIT = -55
 
-        # Inputs
         self.sensor_id: str | None = id
 
-        # Internal resolved locations
-        self.base_dir: str = "/sys/bus/w1/devices"  # default directory
-        self.device_file: str | None = None         # final file path to read
+        self.base_dir: str = "/sys/bus/w1/devices"
+        self.device_file: str | None = None
 
-        # If a path is provided, decide if it's a directory or the final file
         if path:
-            # Normalize trailing slashes
             norm = path.rstrip("/")
             if os.path.isfile(norm):
-                # Caller gave us the *file* .../w1_slave — use it and be done.
                 self.device_file = norm
-                # For nicer IDs in logs, set self.path and self.id
                 self.path = self.device_file
                 self.id = self.sensor_id
                 return
             else:
-                # Treat as a base directory (e.g., /sys/bus/w1/devices)
                 self.base_dir = norm
 
-        # If we get here, either we have (id + base_dir) or neither and must discover.
         if self.sensor_id:
-            # Build file path from id + base_dir
             self.device_file = os.path.join(self.base_dir, self.sensor_id, "w1_slave")
 
-        # Expose friendly attributes for external logging (TelemetryCollector._bundle_id)
         self.id = self.sensor_id
         self.path = self.device_file
 
@@ -110,12 +98,12 @@ class DS18B20Sensor(BaseSensor):
         return candidates[0]
 
     def _get_device_file(self) -> str:
-        """Return a concrete device file path, never None."""
+        """
+        Return a concrete device file path, never None.
+        """
         if self.device_file:
             return self.device_file
-        # No explicit path / id? Try discovery.
         self.device_file = self._discover_device_file()
-        # Keep external-friendly path up to date
         self.path = self.device_file
         return self.device_file
 

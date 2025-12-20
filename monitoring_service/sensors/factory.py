@@ -112,13 +112,10 @@ class SensorFactory:
 
         calibration_map = sensor_config.get("calibration") or {}
         for key, cal in calibration_map.items():
-            # key must be a non-empty string
             if not isinstance(key, str) or not key.strip():
                 raise InvalidSensorConfigError(f"'{key}' in calibration_map must be a string.")
-            # key must be in canonical set
             if key not in canonical:
                 raise InvalidSensorConfigError(f"metadata references unknown canonical key '{key}' in calibration_map")
-            # cal must be dict with offset and slope
             if not isinstance(cal, dict):
                 raise InvalidSensorConfigError(f"Calibration for '{key}' must be a dict with 'offset' and 'slope'")
             if "offset" not in cal or "slope" not in cal:
@@ -151,14 +148,12 @@ class SensorFactory:
                 raise InvalidSensorConfigError(f"'{key}' in smoothing_map must be a string.")
             if key not in canonical:
                 raise InvalidSensorConfigError(f"metadata references unknown canonical key '{key}' in smoothing_map")
-            # Decide: smoothing window is an integer ≥ 1
             if not isinstance(value, int):
                 raise InvalidSensorConfigError(f"Smoothing for '{key}' must be an integer ≥ 1: {value}")
             if value < 1:
                 raise InvalidSensorConfigError(f"Smoothing for '{key}' must be an integer ≥ 1: {value}")
 
         interval = sensor_config.get("interval")
-        # interval must be an integer ≥ 1 if provided
         if interval is not None and (not isinstance(interval, int) or interval < 1):
             raise InvalidSensorConfigError("'interval' must be an integer ≥ 1 if provided")
 
@@ -177,13 +172,11 @@ class SensorFactory:
         accepted_kwargs = getattr(driver_class, "ACCEPTED_KWARGS", set())
         coercers = getattr(driver_class, "COERCERS", {})
 
-        # Filter kwargs to only what the driver accepts
         filtered_kwargs: dict[str, object] = {}
-        for k, v in driver_config.items():
-            if k in accepted_kwargs:
-                filtered_kwargs[k] = v
+        for key, value in driver_config.items():
+            if key in accepted_kwargs:
+                filtered_kwargs[key] = value
 
-        # Apply coercers before required checks (e.g., "17" → 17)
         for field_name, cast in coercers.items():
             if field_name in filtered_kwargs:
                 try:
@@ -193,14 +186,12 @@ class SensorFactory:
                         f"Invalid type for '{field_name}' in {driver_class.__name__}: expected {getattr(cast, '__name__', str(cast))}"
                     ) from e
 
-        # If driver declares REQUIRED_KWARGS, enforce all of them
         if required_kwargs:
             missing: set[str] = set()
-            for f in required_kwargs:
-                if f not in filtered_kwargs or filtered_kwargs[f] in (None, "", []):
-                    missing.add(f)
+            for required_key in required_kwargs:
+                if required_key not in filtered_kwargs or filtered_kwargs[required_key] in (None, "", []):
+                    missing.add(required_key)
 
-            # Ensure REQUIRED_KWARGS ⊆ ACCEPTED_KWARGS to avoid silent drops
             not_accepted = set(required_kwargs) - set(accepted_kwargs)
             if not_accepted:
                 raise InvalidSensorConfigError(
@@ -212,8 +203,6 @@ class SensorFactory:
                 raise InvalidSensorConfigError(
                     f"{driver_class.__name__} requires fields: {sorted(required_kwargs)} — missing: {sorted(missing)}"
                 )
-
-        # Else, fall back to REQUIRED_ANY_OF semantics (list of field groups)
         elif required_any_of:
             has_valid_group = False
             for group in required_any_of:
@@ -255,7 +244,6 @@ class SensorFactory:
         Returns:
             list[SensorBundle]: Successfully built sensor bundles.
         """
-        # 1) Normalise input to a list of sensor configs
         if isinstance(config, dict) and "sensors" in config:
             sensors_cfgs = config.get("sensors")
         elif isinstance(config, list):
@@ -270,14 +258,12 @@ class SensorFactory:
 
         bundles: list[SensorBundle] = []
 
-        # 2) Build each sensor, skip on per-item failure
         for idx, sensor_cfg in enumerate(sensors_cfgs):
             try:
                 bundle = self.build(sensor_cfg)
                 bundles.append(bundle)
 
             except FactoryError as e:
-                # Prefer structured context if present on the exception
                 sensor_type = getattr(e, "sensor_type", None) or sensor_cfg.get("type")
                 sensor_id = getattr(e, "sensor_id", None) or sensor_cfg.get("id")
                 logger.warning(
@@ -287,7 +273,6 @@ class SensorFactory:
                 continue
 
             except Exception as e:
-                # Truly unexpected — keep the traceback
                 sensor_type = sensor_cfg.get("type")
                 sensor_id = sensor_cfg.get("id")
                 logger.exception(
