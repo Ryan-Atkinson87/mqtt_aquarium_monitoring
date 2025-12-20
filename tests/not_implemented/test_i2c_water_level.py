@@ -2,8 +2,8 @@
 import pytest
 from types import SimpleNamespace
 
-import monitoring_service.sensors.i2c_water_level as wlmod
-from monitoring_service.sensors.i2c_water_level import (
+import monitoring_service.sensors.non_functional.i2c_water_level as wlmod
+from monitoring_service.sensors.non_functional.i2c_water_level import (
     I2CWaterLevelSensor,
     WaterLevelInitError,
     WaterLevelReadError,

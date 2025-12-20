@@ -1,23 +1,39 @@
-# dht22.py
+"""
+dht22.py
 
+Provides a sensor driver for the DHT22 temperature and humidity sensor.
 """
-Driver module for dht22 sensor
-"""
+
 import adafruit_dht
 import board
 from monitoring_service.sensors.gpio_sensor import GPIOSensor, GPIOValueError
 from typing import Any
 
 class DHT22InitError(Exception):
+    """
+    Raised when the DHT22 sensor cannot be initialised.
+    """
     pass
 
 class DHT22ValueError(Exception):
+    """
+    Raised when the DHT22 sensor is misconfigured or given invalid values.
+    """
     pass
 
 class DHT22ReadError(Exception):
+    """
+    Raised when reading data from the DHT22 sensor fails.
+    """
     pass
 
 class DHT22Sensor(GPIOSensor):
+    """
+    Sensor driver for the DHT22 temperature and humidity sensor.
+
+    Reads temperature and humidity values via the adafruit_dht library and
+    returns raw readings as a mapping.
+    """
     # Factory uses these for validation + filtering.
     REQUIRED_KWARGS = ["id", "pin"]
     ACCEPTED_KWARGS = ["id", "pin"]
@@ -54,8 +70,9 @@ class DHT22Sensor(GPIOSensor):
 
     def _check_pin(self) -> None:
         """
-        Use the generic GPIO check but re-raise as DHT22ValueError so tests
-        and callers see driver-specific exceptions.
+        Validate the configured GPIO pin for the DHT22 sensor.
+
+        GPIO validation errors are raised as DHT22ValueError.
         """
         try:
             super()._check_pin()
@@ -63,6 +80,9 @@ class DHT22Sensor(GPIOSensor):
             raise DHT22ValueError(str(e)) from e
 
     def _create_sensor(self) -> Any:
+        """
+        Create and initialise the underlying DHT22 sensor instance.
+        """
         try:
             pin_ref = getattr(board, f"D{self.pin}")
             self.sensor = adafruit_dht.DHT22(pin_ref)
@@ -73,6 +93,12 @@ class DHT22Sensor(GPIOSensor):
     # --- Public API ---------------------------------------------------------
 
     def read(self):
+        """
+        Read temperature and humidity values from the DHT22 sensor.
+
+        Returns:
+            dict: Raw sensor readings with temperature and humidity values.
+        """
         return_dict = {}
 
         if self.sensor is None:

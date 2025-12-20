@@ -1,13 +1,21 @@
-# monitoring_service/sensors/water_flow.py
 """
-Make sure pigpiod is installed and running on the pi:
-sudo apt update
-sudo apt install pigpio python3-pigpio
-sudo systemctl enable pigpiod
-sudo systemctl start pigpiod
+water_flow.py
 
-sudo systemctl status pigpiod
+Water flow sensor driver using pigpio pulse timing.
+
+This driver measures flow rate by counting GPIO pulses from a hall-effect
+flow sensor and converting pulse frequency into litres per minute.
 """
+
+# Operational notes:
+# Make sure pigpiod is installed and running on the Pi:
+#   sudo apt update
+#   sudo apt install pigpio python3-pigpio
+#   sudo systemctl enable pigpiod
+#   sudo systemctl start pigpiod
+#
+#   sudo systemctl status pigpiod
+
 import pigpio
 import time
 import collections
@@ -26,6 +34,18 @@ class WaterFlowReadError(Exception):
     pass
 
 class WaterFlowSensor(GPIOSensor):
+    """
+    GPIO-based water flow sensor using pigpio pulse callbacks.
+
+    The sensor begins collecting pulses immediately on initialization and
+    maintains a sliding window of recent ticks for rate calculation.
+
+    Lifecycle:
+        - pigpio is initialized during construction
+        - A GPIO callback is registered automatically
+        - read() blocks briefly to allow pulse accumulation
+        - stop() should be called during shutdown to release pigpio resources
+    """
     REQUIRED_KWARGS = ["id", "pin"]
     ACCEPTED_KWARGS = [
         "id",
@@ -104,7 +124,9 @@ class WaterFlowSensor(GPIOSensor):
             raise WaterFlowValueError(str(e)) from e
 
     def _init_pigpio(self) -> None:
-        """Create persistent pigpio connection and verify it's connected."""
+        """
+        Create a pigpio connection and verify that pigpiod is available.
+        """
         try:
             self.sensor = pigpio.pi()
         except Exception as e:
@@ -115,7 +137,9 @@ class WaterFlowSensor(GPIOSensor):
             raise WaterFlowInitError("Unable to connect to pigpiod. Is the pigpiod daemon running?")
 
     def _configure_pigpio(self) -> None:
-        """Configure pin and glitch filter once at startup."""
+        """
+        Configure pin and glitch filter once at startup.
+        """
         try:
             if self.sensor is None:
                 raise WaterFlowInitError("pigpio not initialized")
@@ -127,7 +151,12 @@ class WaterFlowSensor(GPIOSensor):
             raise WaterFlowInitError(f"Error configuring pigpio: {e}") from e
 
     def start(self) -> None:
-        """Register callback and begin collecting ticks. Safe to call multiple times."""
+        """
+        Register a pigpio callback and begin collecting pulse ticks.
+
+        This method is idempotent. Once started, pulse collection continues in
+        the background until stop() is called.
+        """
         if self.sensor is None:
             self._init_pigpio()
             self._configure_pigpio()
@@ -137,7 +166,9 @@ class WaterFlowSensor(GPIOSensor):
             self._cb = self.sensor.callback(self.pin, pigpio.FALLING_EDGE, self._call_back)
 
     def stop(self) -> None:
-        """Cancel callback and stop pigpio connection. Safe to call multiple times."""
+        """
+        Cancel callback and stop pigpio connection. Safe to call multiple times.
+        """
         try:
             if self._cb is not None:
                 try:
@@ -157,8 +188,10 @@ class WaterFlowSensor(GPIOSensor):
 
     def _call_back(self, gpio: int, level: int, tick: int) -> None:
         """
-        Minimal work in callback: append tick and trim old entries.
-        level==0 indicates the falling edge (we registered for falling).
+        Callback handler for GPIO falling edges.
+
+        Appends the tick timestamp and trims entries outside the sliding window.
+        level == 0 indicates a falling edge.
         """
         if level != 0:
             return
@@ -172,9 +205,11 @@ class WaterFlowSensor(GPIOSensor):
     def _get_instant_and_smoothed(self) -> Tuple[float, float]:
         """
         Compute and return (flow_instant_l_min, flow_smoothed_l_min).
-        Trims old ticks even when no new pulses have arrived.
+
+        Old ticks are trimmed during read-time calculations.
         Uses pigpio.tickDiff to handle wraparound safely.
         """
+
         if self.sensor is None:
             raise WaterFlowReadError("pigpio not initialized")
 

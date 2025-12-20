@@ -1,4 +1,8 @@
-# ds18b20.py
+"""
+ds18b20.py
+
+Provides a sensor driver for the DS18B20 1-Wire temperature sensor.
+"""
 
 import glob
 import os
@@ -6,7 +10,9 @@ from monitoring_service.sensors.base import BaseSensor
 
 
 class DS18B20ReadError(Exception):
-    """Raised when the DS18B20 sensor fails to return a valid reading."""
+    """
+    Raised when the DS18B20 sensor fails to return a valid reading.
+    """
     pass
 
 
@@ -18,8 +24,9 @@ class DS18B20Sensor(BaseSensor):
     ----------
     id : str | None
         The 1-Wire sensor id, e.g. "28-00000abcdef".
-        If provided with a directory path, the device file is constructed as
-        <base_dir>/<id>/w1_slave.
+        If a directory path is provided together with an id, the device file is
+        constructed as <base_dir>/<id>/w1_slave.
+
     path : str | None
         Either a full path to the device file ".../w1_slave" OR a base directory
         like "/sys/bus/w1/devices/". If a full file is provided, discovery is skipped.
@@ -93,7 +100,9 @@ class DS18B20Sensor(BaseSensor):
     # --- Internals ----------------------------------------------------------
 
     def _discover_device_file(self) -> str:
-        """Find the first DS18B20 device file under base_dir or raise."""
+        """
+        Discover and return a DS18B20 device file under base_dir or raise.
+        """
         # Typical glob: /sys/bus/w1/devices/28-*/w1_slave
         candidates = glob.glob(os.path.join(self.base_dir, "28-*", "w1_slave"))
         if not candidates:
@@ -110,8 +119,10 @@ class DS18B20Sensor(BaseSensor):
         self.path = self.device_file
         return self.device_file
 
-    def _read_temp_c(self) -> float:
-        """Read temperature in Celsius from the device file."""
+    def _read_temp(self) -> float:
+        """
+        Read temperature in Celsius from the device file.
+        """
         device_file = self._get_device_file()
         with open(device_file, "r") as f:
             lines = f.readlines()
@@ -131,6 +142,11 @@ class DS18B20Sensor(BaseSensor):
     # --- Public API ---------------------------------------------------------
 
     def read(self) -> dict:
-        """Return {'temperature': <float °C>} or raise DS18B20ReadError on failure."""
-        temp_c = self._read_temp_c()
+        """
+        Read the current temperature from the DS18B20 sensor.
+
+        Returns:
+            dict: Mapping with a single key "temperature" (float, °C).
+        """
+        temp_c = self._read_temp()
         return {"temperature": temp_c}
