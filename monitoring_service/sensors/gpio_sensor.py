@@ -5,7 +5,7 @@ Provides a base helper class for GPIO-based sensors, including shared GPIO
 validation logic.
 """
 
-
+from abc import ABC
 from monitoring_service.sensors.base import BaseSensor
 from monitoring_service.sensors.constants import VALID_GPIO_PINS
 
@@ -15,7 +15,7 @@ class GPIOValueError(Exception):
     """
     pass
 
-class GPIOSensor(BaseSensor):
+class GPIOSensor(BaseSensor, ABC):
     """
     Base class for sensors that use a GPIO pin.
 
