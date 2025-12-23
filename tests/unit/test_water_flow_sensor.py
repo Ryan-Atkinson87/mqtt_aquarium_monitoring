@@ -75,7 +75,7 @@ def test_waterflow_init_valid_pin(monkeypatch):
     fake_pi = FakePi(connected=True)
     monkeypatch.setattr("pigpio.pi", lambda: fake_pi)
     # instantiate with valid pin (assumes VALID_GPIO_PINS allows 17 in your project)
-    s = WaterFlowSensor(identity="f1", pin=17)
+    s = WaterFlowSensor(id="f1", pin=17)
     assert s.sensor is not None
     assert s._callback is not None
     # cleanup
@@ -86,7 +86,7 @@ def test_waterflow_init_pigpio_not_running(monkeypatch):
     fake_pi = FakePi(connected=False)
     monkeypatch.setattr("pigpio.pi", lambda: fake_pi)
     with pytest.raises(WaterFlowInitError):
-        WaterFlowSensor(identity="f1", pin=17)
+        WaterFlowSensor(id="f1", pin=17)
 
 
 def test_waterflow_init_pigpio_throws(monkeypatch):
@@ -94,13 +94,13 @@ def test_waterflow_init_pigpio_throws(monkeypatch):
         raise Exception("boom")
     monkeypatch.setattr("pigpio.pi", boom)
     with pytest.raises(WaterFlowInitError):
-        WaterFlowSensor(identity="f1", pin=17)
+        WaterFlowSensor(id="f1", pin=17)
 
 
 def test_waterflow_start_registers_callback(monkeypatch):
     fake_pi = FakePi(connected=True)
     monkeypatch.setattr("pigpio.pi", lambda: fake_pi)
-    s = WaterFlowSensor(identity="f1", pin=17)
+    s = WaterFlowSensor(id="f1", pin=17)
     # callback registered on init via start()
     assert fake_pi.callback_calls, "callback should have been registered"
     # idempotent start
@@ -113,7 +113,7 @@ def test_waterflow_start_registers_callback(monkeypatch):
 def test_waterflow_callback_adds_ticks(monkeypatch):
     fake_pi = FakePi(connected=True)
     monkeypatch.setattr("pigpio.pi", lambda: fake_pi)
-    s = WaterFlowSensor(identity="f1", pin=17)
+    s = WaterFlowSensor(id="f1", pin=17)
     # simulate callback invocation: find registered function and call it
     pin, edge, fn = fake_pi.callback_calls[0]
     # call with falling edge (level=0)
@@ -128,7 +128,7 @@ def test_waterflow_callback_sliding_window_purges_old_ticks(monkeypatch):
     fake_pi = FakePi(connected=True)
     monkeypatch.setattr("pigpio.pi", lambda: fake_pi)
     # use a small sliding window for test
-    s = WaterFlowSensor(identity="f1", pin=17, sliding_window_s=1.0)
+    s = WaterFlowSensor(id="f1", pin=17, sliding_window_s=1.0)
     pin, edge, fn = fake_pi.callback_calls[0]
     # append ticks at t=0, t=0.6s, then new tick at t=2s -> should purge first two
     fn(pin, 0, 0)
@@ -144,7 +144,7 @@ def test_waterflow_callback_sliding_window_purges_old_ticks(monkeypatch):
 def test_waterflow_get_flow_no_ticks(monkeypatch):
     fake_pi = FakePi(connected=True)
     monkeypatch.setattr("pigpio.pi", lambda: fake_pi)
-    s = WaterFlowSensor(identity="f1", pin=17)
+    s = WaterFlowSensor(id="f1", pin=17)
     feed_ticks(s, [])
     inst, smooth = s._get_instant_and_smoothed()
     assert inst == 0.0 and smooth == 0.0
@@ -154,7 +154,7 @@ def test_waterflow_get_flow_no_ticks(monkeypatch):
 def test_waterflow_get_flow_single_tick(monkeypatch):
     fake_pi = FakePi(connected=True)
     monkeypatch.setattr("pigpio.pi", lambda: fake_pi)
-    s = WaterFlowSensor(identity="f1", pin=17)
+    s = WaterFlowSensor(id="f1", pin=17)
     feed_ticks(s, [1_000_000])
     inst, smooth = s._get_instant_and_smoothed()
     assert inst == 0.0 and smooth == 0.0
@@ -166,7 +166,7 @@ def test_waterflow_get_flow_valid_sequence(monkeypatch):
     fake_pi._current_tick = 700_000
     fake_pi.get_current_tick = lambda: fake_pi._current_tick
     monkeypatch.setattr("pigpio.pi", lambda: fake_pi)
-    s = WaterFlowSensor(identity="f1", pin=17, calibration_constant=4.5)
+    s = WaterFlowSensor(id="f1", pin=17, calibration_constant=4.5)
     # ticks spaced 200000us apart => 5 Hz
     ticks = [0, 200000, 400000, 600000]
     feed_ticks(s, ticks)
@@ -183,7 +183,7 @@ def test_waterflow_get_flow_with_wraparound(monkeypatch):
     # monkeypatch pigpio.tickDiff to simulate wraparound calculation
     original_tickdiff = real_pigpio.tickDiff
     monkeypatch.setattr("pigpio.tickDiff", lambda t1, t2: (t2 - t1) if t2 >= t1 else ( (2**32 + t2) - t1 ))
-    s = WaterFlowSensor(identity="f1", pin=17, calibration_constant=4.5)
+    s = WaterFlowSensor(id="f1", pin=17, calibration_constant=4.5)
     # simulate wrap: first tick near uint32 max, last tick small
     max_val = 2**32 - 1000
     ticks = [max_val, max_val + 200000, 200000]  # note: values here are synthetic; tickDiff handles wrap
@@ -199,7 +199,7 @@ def test_waterflow_get_flow_with_wraparound(monkeypatch):
 def test_waterflow_read_waits_sample_window(monkeypatch):
     fake_pi = FakePi(connected=True)
     monkeypatch.setattr("pigpio.pi", lambda: fake_pi)
-    s = WaterFlowSensor(identity="f1", pin=17, sample_window=0.01)
+    s = WaterFlowSensor(id="f1", pin=17, sample_window=0.01)
     # monkeypatch time.sleep to avoid real wait and to assert it was called
     called = {}
     def fake_sleep(sec):
@@ -215,7 +215,7 @@ def test_waterflow_read_waits_sample_window(monkeypatch):
 def test_waterflow_read_raises_on_compute_error(monkeypatch):
     fake_pi = FakePi(connected=True)
     monkeypatch.setattr("pigpio.pi", lambda: fake_pi)
-    s = WaterFlowSensor(identity="f1", pin=17)
+    s = WaterFlowSensor(id="f1", pin=17)
     # force _get_instant_and_smoothed to raise
     def boom():
         raise Exception("boom")
@@ -228,7 +228,7 @@ def test_waterflow_read_raises_on_compute_error(monkeypatch):
 def test_waterflow_stop_cancels_callback_and_stops_pigpio(monkeypatch):
     fake_pi = FakePi(connected=True)
     monkeypatch.setattr("pigpio.pi", lambda: fake_pi)
-    s = WaterFlowSensor(identity="f1", pin=17)
+    s = WaterFlowSensor(id="f1", pin=17)
     cb_handle = s._callback
     assert cb_handle is not None
     s.stop()
@@ -240,7 +240,7 @@ def test_waterflow_stop_cancels_callback_and_stops_pigpio(monkeypatch):
 def test_waterflow_stop_idempotent(monkeypatch):
     fake_pi = FakePi(connected=True)
     monkeypatch.setattr("pigpio.pi", lambda: fake_pi)
-    s = WaterFlowSensor(identity="f1", pin=17)
+    s = WaterFlowSensor(id="f1", pin=17)
     s.stop()
     # second stop should not raise
     s.stop()
@@ -249,7 +249,7 @@ def test_waterflow_stop_idempotent(monkeypatch):
 def test_waterflow_del_calls_stop(monkeypatch):
     fake_pi = FakePi(connected=True)
     monkeypatch.setattr("pigpio.pi", lambda: fake_pi)
-    s = WaterFlowSensor(identity="f1", pin=17)
+    s = WaterFlowSensor(id="f1", pin=17)
     # replace stop with a spy
     called = {}
     def spy_stop():
