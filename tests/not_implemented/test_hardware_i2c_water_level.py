@@ -4,10 +4,8 @@ import pytest
 import platform
 from smbus3 import SMBus, i2c_msg
 
-from monitoring_service.sensors.i2c_water_level import (
+from monitoring_service.sensors.non_functional.i2c_water_level import (
     I2CWaterLevelSensor,
-    WaterLevelInitError,
-    WaterLevelReadError,
 )
 
 # Safety: only run these when explicitly requested on Pi hardware
