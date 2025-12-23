@@ -8,6 +8,15 @@ Format: Keep a Changelog. Versioning: SemVer (MAJOR.MINOR.PATCH).
 - (Planned) SQLite que for offline storage and retries.
 - (Planned) HTTP implementation for sending data to places other than ThingsBoard.
 
+## [v2.1.1] - 2025-12-23
+### Added
+- No new features.
+
+### Changed
+- Names of variables updated to be more semantic.
+
+### Documentation
+- Added/updated docstrings for all files, classes, methods.
 
 ## [v2.1.0] - 2025-12-05
 ### Added
