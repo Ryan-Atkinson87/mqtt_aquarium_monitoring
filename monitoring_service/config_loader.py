@@ -40,9 +40,7 @@ def _safe_log(logger, level: str, msg: str) -> None:
         try:
             fn(msg)
         except Exception:
-            pass  # swallow logger weirdness in tests
-    # else: no-op (DummyLogger won’t have .info/.warning, and that’s fine)
-
+            pass
 
 
 def _project_root() -> Path:
@@ -57,26 +55,24 @@ def _find_config_path(logger=None) -> Optional[Path]:
     Locate config.json based on environment variables or common fallback
     locations. Returns the resolved path or None if not found.
     """
-    # 1) Env overrides
     for key in ("CONFIG_PATH", "AQUARIUM_CONFIG"):
-        p = os.environ.get(key)
-        if p:
-            path = Path(p).expanduser().resolve()
+        env_value = os.environ.get(key)
+        if env_value:
+            path = Path(env_value).expanduser().resolve()
             if path.is_file():
                 _safe_log(logger, "info", f"ConfigLoader: using {key}={path}")
                 return path
             _safe_log(logger, "warning", f"ConfigLoader: {key} set but not a file: {path}")
 
-    # 2) Common locations (in priority order)
     candidates = [
-        Path.cwd() / "config.json",                       # run dir
-        _project_root() / "config.json",                  # repo root
-        _project_root() / "config" / "config.json",       # repo/config/config.json
+        Path.cwd() / "config.json",
+        _project_root() / "config.json",
+        _project_root() / "config" / "config.json",
     ]
-    for c in candidates:
-        if c.is_file():
-            _safe_log(logger, "info", f"ConfigLoader: discovered config at {c}")
-            return c
+    for candidate in candidates:
+        if candidate.is_file():
+            _safe_log(logger, "info", f"ConfigLoader: discovered config at {candidate}")
+            return candidate
 
     _safe_log(logger, "warning", "ConfigLoader: no config.json found via env or defaults")
     return None
@@ -91,12 +87,11 @@ def _load_json_config(path: Optional[Path], logger=None) -> Dict[str, Any]:
     if not path:
         return {}
     try:
-        with open(path, "r") as f:          # <- use builtins.open so tests can mock it
-            return json.load(f)
+        with open(path, "r") as file:  # <- use builtins.open so tests can mock it
+            return json.load(file)
     except Exception as e:
         _safe_log(logger, "error", f"ConfigLoader: failed reading {path}: {e}")
         return {}
-
 
 
 class ConfigLoader:
@@ -120,6 +115,7 @@ class ConfigLoader:
       - log_level (str, default "INFO")
       - sensors (list)  <-- merged in; not strictly required here
     """
+
     # TODO: config loader doesn't currently fail when no config is available, fix this.
 
     def __init__(self, logger):
@@ -133,18 +129,14 @@ class ConfigLoader:
         load_dotenv()
         self.logger = logger
 
-        # Required env
         self.token = os.getenv("ACCESS_TOKEN")
         self.server = os.getenv("THINGSBOARD_SERVER")
 
-        # Find + load JSON
         self.config_path: Optional[Path] = _find_config_path(self.logger)
         self.config: Dict[str, Any] = _load_json_config(self.config_path, self.logger)
 
-        # Validate env before touching JSON-derived fields
         self._validate_or_raise()
 
-        # Parse core fields from JSON (with validation/defaults)
         self.poll_period = self._get_poll_period()
         self.device_name = self._get_device_name()
         self.mount_path = self._get_mount_path()
@@ -164,18 +156,14 @@ class ConfigLoader:
             "log_level": self.log_level,
         }
 
-        # Include everything else from JSON that wasn't already set,
-        # notably 'sensors' and any future top-level keys.
-        for k, v in self.config.items():
-            if k not in merged or merged[k] in (None, "", []):
-                merged[k] = v
+        for key, value in self.config.items():
+            if key not in merged or merged[key] in (None, "", []):
+                merged[key] = value
 
-        # Visibility
         _safe_log(self.logger, "info", f"ConfigLoader: keys loaded: {list(merged.keys())}")
-        _safe_log(self.logger, "info", f"ConfigLoader: sensors present: {'sensors' in merged and bool(merged.get('sensors'))}")
+        _safe_log(self.logger, "info",
+                  f"ConfigLoader: sensors present: {'sensors' in merged and bool(merged.get('sensors'))}")
         return merged
-
-    # ----------------- internal validation/parsers -----------------
 
     def _validate_or_raise(self) -> None:
         """
@@ -226,10 +214,10 @@ class ConfigLoader:
             ValueError: If device_name is invalid.
         """
         try:
-            val = self.config["device_name"]
-            if not isinstance(val, str) or not val.strip():
+            value = self.config["device_name"]
+            if not isinstance(value, str) or not value.strip():
                 raise ValueError("device_name must be a non-empty string")
-            return val
+            return value
         except KeyError:
             _safe_log(self.logger, "error", "Missing required config: device_name")
             raise
@@ -249,10 +237,10 @@ class ConfigLoader:
             ValueError: If mount_path is invalid.
         """
         try:
-            val = self.config["mount_path"]
-            if not isinstance(val, str) or not val:
+            value = self.config["mount_path"]
+            if not isinstance(value, str) or not value:
                 raise ValueError("mount_path must be a string")
-            return val
+            return value
         except KeyError:
             _safe_log(self.logger, "error", "Missing required config: mount_path")
             raise
@@ -267,9 +255,9 @@ class ConfigLoader:
         Returns:
             str: The configured logging level.
         """
-        val = self.config.get("log_level", "INFO")
+        value = self.config.get("log_level", "INFO")
         try:
-            return str(val)
+            return str(value)
         except (ValueError, TypeError) as e:
-            _safe_log(self.logger, "error", f"Invalid log_level: {val} ({e})")
+            _safe_log(self.logger, "error", f"Invalid log_level: {value} ({e})")
             raise

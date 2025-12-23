@@ -11,7 +11,6 @@ import time
 from collections.abc import Mapping
 from typing import Any
 
-# Set up logging
 import logging
 from monitoring_service import PACKAGE_LOGGER_NAME
 from monitoring_service.sensors.factory import SensorBundle
