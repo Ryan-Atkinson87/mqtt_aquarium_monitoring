@@ -76,7 +76,7 @@ class WaterFlowSensor(GPIOSensor):
     def __init__(
         self,
         *,
-        identity: str | None = None,
+        id: str | None = None,
         pin: int | None = None,
         sample_window: float | None = 1.0,
         sliding_window_s: float | None = 3.0,
@@ -89,7 +89,7 @@ class WaterFlowSensor(GPIOSensor):
         self.sensor_kind = kind
         self.sensor_units = units
 
-        self.sensor_id: str | None = identity
+        self.sensor_id: str | None = id
         self.pin: int | None = pin
 
         self.sample_window: float = float(sample_window) if sample_window is not None else 1.0
