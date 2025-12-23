@@ -105,6 +105,6 @@ def test_waterflow_stop_releases_pigpio():
 
     sensor.stop()
 
-    assert sensor._cb is None
+    assert sensor._callback is None
     assert sensor.sensor is None
     assert pigpio_handle.connected is False
