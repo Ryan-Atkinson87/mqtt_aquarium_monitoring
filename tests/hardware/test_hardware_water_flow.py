@@ -19,7 +19,7 @@ def test_waterflow_init_hardware():
     """
     sensor = None
     try:
-        sensor = WaterFlowSensor(id="hwflow1", pin=TEST_FLOW_PIN)
+        sensor = WaterFlowSensor(identity="hwflow1", pin=TEST_FLOW_PIN)
     except WaterFlowInitError as e:
         pytest.fail(f"WaterFlowSensor failed to initialize: {e}")
 
@@ -37,7 +37,7 @@ def test_waterflow_callback_accumulates_real_pulses():
     You will need to blow water/air or manually spin the impeller for this test.
     """
     sensor = WaterFlowSensor(
-        id="hwflow2",
+        identity="hwflow2",
         pin=TEST_FLOW_PIN,
         sample_window=1.0,
         sliding_window_s=2.0,
@@ -71,7 +71,7 @@ def test_waterflow_read_returns_real_values():
     Values may be zero if water isn't flowing but should never error.
     """
     sensor = WaterFlowSensor(
-        id="hwflow3",
+        identity="hwflow3",
         pin=TEST_FLOW_PIN,
         sample_window=1.0,
         sliding_window_s=2.0,
@@ -98,13 +98,13 @@ def test_waterflow_stop_releases_pigpio():
     """
     Ensure that stop() actually shuts down pigpio cleanly.
     """
-    sensor = WaterFlowSensor(id="hwflow4", pin=TEST_FLOW_PIN)
+    sensor = WaterFlowSensor(identity="hwflow4", pin=TEST_FLOW_PIN)
 
     # Save original pigpio handle
     pigpio_handle = sensor.sensor
 
     sensor.stop()
 
-    assert sensor._cb is None
+    assert sensor._callback is None
     assert sensor.sensor is None
     assert pigpio_handle.connected is False
