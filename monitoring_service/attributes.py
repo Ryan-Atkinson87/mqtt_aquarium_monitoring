@@ -1,15 +1,15 @@
 """
 attributes.py
 
-Defines the AttributesCollector class, which gathers machine attribute data
-such as device name, IP address, and MAC address.
+Provides the AttributesCollector class, responsible for gathering basic device
+attributes such as device name, IP address, and MAC address.
 
 Classes:
     AttributesCollector
 
 Usage:
-    reporter = AttributesCollector(device_name, logger)
-    attributes = reporter.as_dict()
+    collector = AttributesCollector(device_name, logger)
+    attrs = collector.as_dict()
 """
 
 import socket
@@ -18,10 +18,10 @@ import uuid
 
 class AttributesCollector:
     """
-    Collects static machine attribute data during initialization.
+    Collect basic device attributes and expose them as a dictionary.
 
-    Attributes gathered include device name, IP address, and MAC address.
-    Data is collected when the class is instantiated and exposed via `as_dict()`.
+    The collector gathers device name, IP address, and MAC address. Attribute
+    values are retrieved on demand when calling as_dict().
     """
 
     def __init__(self, device_name, logger):
@@ -29,17 +29,31 @@ class AttributesCollector:
         self.logger = logger
 
     def _get_ip_address(self):
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        """
+        Retrieve the device's primary IPv4 address.
+
+        Returns:
+            str or None: The detected IP address, or None if it cannot be
+            determined.
+        """
+        this_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         try:
-            s.connect(("8.8.8.8", 80))
-            return s.getsockname()[0]
+            this_socket.connect(("8.8.8.8", 80))
+            return this_socket.getsockname()[0]
         except Exception as e:
             self.logger.error(f"Error getting IP address: {e}")
             return None
         finally:
-            s.close()
+            this_socket.close()
 
     def _get_mac_address(self):
+        """
+        Retrieve the device's MAC address.
+
+        Returns:
+            str or None: The MAC address in standard colon format, or None if it
+            cannot be determined.
+        """
         try:
             mac_address = ':'.join(
                 ['{:02x}'.format((uuid.getnode() >> ele) & 0xff)
@@ -52,9 +66,11 @@ class AttributesCollector:
 
     def as_dict(self):
         """
-        Return a dictionary containing the machine attribute data.
+        Build and return a dictionary of collected device attributes.
 
-        :return: dictionary containing the machine attribute data.
+        Returns:
+            dict: Attribute values including device_name, ip_address,
+            and mac_address.
         """
 
         ip_address = self._get_ip_address()

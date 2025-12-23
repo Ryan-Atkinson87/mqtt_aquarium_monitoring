@@ -1,18 +1,34 @@
-# monitoring_service/sensors/gpio_sensor.py
+"""
+gpio_sensor.py
 
+Provides a base helper class for GPIO-based sensors, including shared GPIO
+validation logic.
+"""
+
+from abc import ABC
 from monitoring_service.sensors.base import BaseSensor
 from monitoring_service.sensors.constants import VALID_GPIO_PINS
 
 class GPIOValueError(Exception):
+    """
+    Raised when a GPIO sensor is misconfigured or uses an invalid GPIO pin.
+    """
     pass
 
-class GPIOSensor(BaseSensor):
+class GPIOSensor(BaseSensor, ABC):
     """
-    Intermediate helper for GPIO-based sensors.
-    BaseSensor is already an ABC, so don't re-declare ABC here to avoid MRO issues.
+    Base class for sensors that use a GPIO pin.
+
+    Provides shared validation logic for GPIO pin configuration.
     """
 
     def _check_pin(self) -> None:
+        """
+        Validate that the sensor has a valid GPIO pin configured.
+
+        Expects the instance to define a `pin` attribute containing a valid
+        integer GPIO pins.
+        """
         # Expect the factory to supply a 'pin' attribute (and to coerce types).
         if not hasattr(self, "pin"):
             raise GPIOValueError("Sensor missing required attribute 'pin'")
