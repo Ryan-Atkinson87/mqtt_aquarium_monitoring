@@ -25,28 +25,23 @@ def main():
     SensorFactory, wires collectors and the ThingsBoard client, and starts the
     MonitoringAgent. The function blocks indefinitely once the agent is started.
     """
-    # Minimal bootstrap logger (before config-driven logging is ready)
     bootstrap_logger = logging.getLogger("bootstrap")
     bootstrap_logger.setLevel(logging.INFO)
     bootstrap_logger.addHandler(logging.StreamHandler())
 
-    # Load config (env + json inside)
     config = ConfigLoader(logger=bootstrap_logger).as_dict()
 
-    # Structured logging per config
     logger = setup_logging(
         log_dir="log",
         log_file_name="monitoring_service.log",
         log_level=config["log_level"],
     )
 
-    # Core config
     server = config["server"]
     token = config["token"]
     poll_period = config["poll_period"]
     device_name = config["device_name"]
 
-    # Build sensor bundles via the factory from config["sensors"]
     factory = SensorFactory()
 
     sensors_config = config.get("sensors", [])
@@ -58,12 +53,10 @@ def main():
     if not bundles:
         logger.warning("No sensors configured/built. Telemetry will be empty.")
 
-    # Wire up collectors and client
     telemetry_collector = TelemetryCollector(bundles=bundles)
     attributes_collector = AttributesCollector(device_name, logger)
     client = TBClientWrapper(server, token, logger)
 
-    # Spin up the agent
     agent = MonitoringAgent(
         server,
         token,

@@ -36,15 +36,15 @@ class AttributesCollector:
             str or None: The detected IP address, or None if it cannot be
             determined.
         """
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        this_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         try:
-            s.connect(("8.8.8.8", 80))
-            return s.getsockname()[0]
+            this_socket.connect(("8.8.8.8", 80))
+            return this_socket.getsockname()[0]
         except Exception as e:
             self.logger.error(f"Error getting IP address: {e}")
             return None
         finally:
-            s.close()
+            this_socket.close()
 
     def _get_mac_address(self):
         """
