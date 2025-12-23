@@ -1,33 +1,36 @@
 """
 agent.py
 
-Defines the MonitoringAgent class, which manages telemetry and attribute
-reporting to ThingsBoard. This class owns the lifecycle of the monitoring
-process, including connecting to the MQTT broker, scheduling telemetry updates,
-and handling incoming server-side RPC or attribute updates.
+Defines the MonitoringAgent class, responsible for running the main monitoring
+loop. The agent periodically collects telemetry and device attributes and sends
+them through the configured ThingsBoard client.
 
 Classes:
     MonitoringAgent
 
 Usage:
-    Instantiate MonitoringAgent and call .start() to begin the monitoring loop.
+    agent = MonitoringAgent(...)
+    agent.start()  # starts the blocking monitoring loop
 """
+
 import time
 
 
 class MonitoringAgent:
     """
-    Manages telemetry sending to ThingsBoard. Uses poll_period to determine when to send data to ThingsBoard.
-    Logs the collected telemetry before sending to ThingsBoard.
+    MonitoringAgent runs the main monitoring loop. It periodically collects telemetry
+    and device attributes and forwards both to the ThingsBoard client.
 
     Args:
-        tb_host (str): ThingsBoard host to connect to.
-        access_token (str): Access token to connect with.
-        logger (Logger): Logger to use.
-        telemetry_collector (TelemetryCollector): Telemetry collector instance.
-        tb_client (ThingsBoardClient): ThingsBoard client instance.
-        poll_period (int): Time in seconds between telemetry updates.
+        tb_host (str): ThingsBoard host, stored for reference.
+        access_token (str): Access token, stored for reference.
+        logger (Logger): Logger instance.
+        telemetry_collector (TelemetryCollector): Collects and returns telemetry data.
+        attributes_collector (AttributesCollector): Collects static and dynamic attributes.
+        tb_client (ThingsBoardClient): Client used to send telemetry and attributes.
+        poll_period (int): Seconds between each loop iteration.
     """
+
     def __init__(self,
                  tb_host,
                  access_token,
@@ -47,15 +50,16 @@ class MonitoringAgent:
 
     def start(self):
         """
-        Starts the monitoring loop that periodically collects and sends telemetry and attribute data.
+        Start and run the blocking monitoring loop.
 
-        This method runs indefinitely, sleeping for `poll_period` seconds between each
-        telemetry/attributes collection cycle. It logs each tick and handles timing delays.
+        On each iteration the agent:
+          1) collects telemetry from telemetry_collector,
+          2) collects attributes from attributes_collector,
+          3) forwards both to the ThingsBoard client,
+          4) sleeps for `poll_period` seconds minus the cycle runtime.
 
-        Attributes data sent on every cycle in case of change. ThingsBoard will only log on change.
-
-        Raises:
-            Any unexpected exceptions from telemetry collection or transmission will propagate.
+        This method blocks indefinitely and logs progress. Exceptions raised by
+        the collectors or tb_client will propagate to the caller.
         """
 
         self.logger.info("MonitoringAgent started.")
@@ -70,7 +74,12 @@ class MonitoringAgent:
             time.sleep(delay)
 
     def _read_and_send_telemetry(self):
-        # TODO: move error logging into telemetry.py, remove from this function
+        """
+        Collect telemetry and send it to the ThingsBoard client.
+
+        Calls telemetry_collector.as_dict() to obtain the payload, logs the
+        collected data, and invokes tb_client.send_telemetry(telemetry).
+        """
         self.logger.info("Reading telemetry...")
         telemetry = self.telemetry_collector.as_dict()
         self.logger.info(f"Collected telemetry: {telemetry}")
@@ -80,6 +89,12 @@ class MonitoringAgent:
         self.logger.info("Telemetry sent.")
 
     def _read_and_send_attributes(self):
+        """
+        Collect device attributes and send them to the ThingsBoard client.
+
+        Calls attributes_collector.as_dict() to obtain the attributes, logs the
+        collected attributes, and invokes tb_client.send_attributes(attributes).
+        """
         self.logger.info("Reading attributes...")
         attributes = self.attributes_collector.as_dict()
         self.logger.info(f"Collected attributes: {attributes}")

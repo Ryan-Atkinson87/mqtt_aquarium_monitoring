@@ -1,4 +1,9 @@
-# monitoring_service/sensors/base.py
+"""
+base.py
+
+Defines the BaseSensor abstract class, which all sensor drivers must implement.
+"""
+
 
 from abc import ABC, abstractmethod
 from typing import Mapping, Any
@@ -7,13 +12,15 @@ from typing import Mapping, Any
 class BaseSensor(ABC):
     """
     Abstract base class for all sensor drivers.
-    Enforces a consistent interface (at minimum: read()).
+
+    Sensor drivers must implement read() and return a mapping of raw sensor
+    readings.
     """
+
 
     @abstractmethod
     def read(self) -> Mapping[str, Any]:
         """
-        Return driver readings as a dict-like mapping.
-        Example: {"temperature": 22.4, "humidity": 45.1}
+        Return raw sensor readings as a mapping of key-value pairs.
         """
         raise NotImplementedError

@@ -1,16 +1,38 @@
+"""
+i2c_water_level.py
+
+Provides an I2C-based water level sensor driver.
+"""
+
+
 from monitoring_service.sensors.base import BaseSensor
 from smbus3 import SMBus, i2c_msg
 
 class WaterLevelInitError(Exception):
+    """
+    Raised when the water level sensor fails during initialization.
+    """
     pass
 
 class WaterLevelValueError(Exception):
+    """
+    Raised when the water level sensor is misconfigured or given invalid values.
+    """
     pass
 
 class WaterLevelReadError(Exception):
+    """
+    Raised when reading data from the water level sensor fails.
+    """
     pass
 
 class I2CWaterLevelSensor(BaseSensor):
+    """
+    I2C-based water level sensor driver.
+
+    Reads raw section data from paired I2C addresses and derives a relative
+    water level measurement.
+    """
     REQUIRED_KWARGS = ["id", "bus", "low_address", "high_address"]
     ACCEPTED_KWARGS = ["id", "bus", "low_address", "high_address"]
     COERCERS = {"bus": int, "low_address": int, "high_address": int}
@@ -91,7 +113,9 @@ class I2CWaterLevelSensor(BaseSensor):
     # --- Bus / Address helpers ---------------------------------------------
 
     def _check_bus(self):
-        """Open /dev/i2c-{bus} and keep the handle for reuse."""
+        """
+        Open /dev/i2c-{bus} and keep the handle for reuse.
+        """
         try:
             self._smbus = SMBus(self.bus)
         except FileNotFoundError as e:
@@ -102,7 +126,9 @@ class I2CWaterLevelSensor(BaseSensor):
             raise WaterLevelInitError(f"Failed to open I2C bus {self.bus}: {e}") from e
 
     def _probe_pair(self, low: int, high: int) -> bool:
-        """Return True if both addresses respond to a 1-byte probe read."""
+        """
+        Return True if both addresses respond to a 1-byte probe read.
+        """
         try:
             self._smbus.i2c_rdwr(i2c_msg.read(low, 1))
             self._smbus.i2c_rdwr(i2c_msg.read(high, 1))
@@ -161,7 +187,8 @@ class I2CWaterLevelSensor(BaseSensor):
     # --- Reading -----------------------------------------------------------
 
     def _collect_raw(self) -> dict:
-        """Read raw 8 + 12 bytes and derive a relative level in mm.
+        """
+        Read raw I2C bytes and derive a relative water level in millimetres.
 
         Validates returned data and raises WaterLevelReadError on malformed/truncated reads.
         """
@@ -225,11 +252,16 @@ class I2CWaterLevelSensor(BaseSensor):
         }
 
     def read(self) -> dict:
-        """Public read API. Returns canonical sensor key for collector mapping."""
+        """
+        Return the current water level reading as a canonical mapping {'water_level': <float mm>}.
+        """
         raw = self._collect_raw()
         return {"water_level": raw["level_mm"]}
 
     def _shutdown(self):
+        """
+        Close the I2C bus handle if open.
+        """
         try:
             if getattr(self, "_smbus", None):
                 self._smbus.close()
