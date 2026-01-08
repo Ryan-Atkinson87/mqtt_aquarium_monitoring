@@ -41,7 +41,7 @@ class LoggingDisplay(BaseDisplay):
             timestamp_ms = snapshot.get("ts")
             values = snapshot.get("values", {})
 
-            water_temp = values.get("water_temp", "N/A")
+            water_temperature = values.get("water_temperature", "N/A")
 
             if isinstance(timestamp_ms, (int, float)):
                 age_seconds = int((time.time() * 1000 - timestamp_ms) / 1000)
@@ -49,8 +49,8 @@ class LoggingDisplay(BaseDisplay):
                 age_seconds = "N/A"
 
             self._logger.info(
-                "Display update | water_temp=%s | age=%s seconds",
-                water_temp,
+                "Display update | water_temperature=%s | age=%s seconds",
+                water_temperature,
                 age_seconds,
             )
 
