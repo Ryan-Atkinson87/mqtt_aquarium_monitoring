@@ -38,7 +38,8 @@ class MonitoringAgent:
                  telemetry_collector,
                  attributes_collector,
                  tb_client,
-                 poll_period=60
+                 poll_period=60,
+                 displays=None
                  ):
         self.tb_host = tb_host
         self.access_token = access_token
@@ -47,6 +48,7 @@ class MonitoringAgent:
         self.attributes_collector = attributes_collector
         self.poll_period = poll_period
         self.tb_client = tb_client
+        self.displays = displays or []
 
     def start(self):
         """
@@ -87,6 +89,15 @@ class MonitoringAgent:
         self.logger.info("Sending telemetry...")
         self.tb_client.send_telemetry(telemetry)
         self.logger.info("Telemetry sent.")
+
+        for display in self.displays:
+            try:
+                display.render(telemetry)
+            except Exception:
+                self.logger.warning(
+                    "Display render failed",
+                    exc_info=True,
+                )
 
     def _read_and_send_attributes(self):
         """
