@@ -3,6 +3,18 @@
   "device_name": "RasPiZero_01",
   "mount_path": "/",
   "log_level": "INFO",
+  "displays": [
+    {
+      "type": "i2c_oled",
+      "enabled": true,
+      "refresh_period": 5
+    },
+    {
+      "type": "logging",
+      "enabled": true,
+      "refresh_period": 5
+    }
+  ],
   "sensors": [
     {
       "type": "ds18b20",

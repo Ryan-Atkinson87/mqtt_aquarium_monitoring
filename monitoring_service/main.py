@@ -15,6 +15,7 @@ from monitoring_service.telemetry import TelemetryCollector
 from monitoring_service.attributes import AttributesCollector
 from monitoring_service.TBClientWrapper import TBClientWrapper
 from monitoring_service.agent import MonitoringAgent
+from monitoring_service.display.factory import build_displays
 
 
 def main():
@@ -35,6 +36,13 @@ def main():
         log_dir="log",
         log_file_name="monitoring_service.log",
         log_level=config["log_level"],
+    )
+
+    displays_config = config.get("displays", [])
+
+    displays = build_displays(
+        displays_config=displays_config,
+        logger=logger,
     )
 
     server = config["server"]
@@ -65,6 +73,7 @@ def main():
         attributes_collector,
         client,
         poll_period,
+        displays=displays,
     )
 
     client.connect()
