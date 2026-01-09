@@ -112,7 +112,7 @@ class SSD1306I2CDisplay(BaseDisplay):
             value_y = 10
             time_y = 22
 
-            labels = ["water_temperature", "air_temperature", "air_humidity"]
+            labels = ["Water", "Air", "Humidity"]
             for label, cx in zip(labels, col_centers):
                 self._draw_centered_text(label, cx, label_y)
 
