@@ -6,7 +6,6 @@ snapshots.
 """
 
 import logging
-import time
 from datetime import datetime
 from typing import Mapping, Any
 
@@ -70,65 +69,77 @@ class SSD1306I2CDisplay(BaseDisplay):
             )
             raise
 
-    def render(self, snapshot: Mapping[str, Any]) -> None:
+    def _draw_centered_text(self, text: str, center_x: int, y: int) -> None:
         """
-        Render a telemetry snapshot to the OLED display.
+        Draw text centered horizontally at a specific x coordinate.
 
         Args:
-            snapshot: Telemetry snapshot containing ts, device_name, and values.
+            text: Text to render.
+            center_x: Horizontal center position.
+            y: Vertical position.
+        """
+        text_width, _ = self._draw.textsize(text, font=self._font)
+        x = int(center_x - text_width / 2)
+        self._draw.text((x, y), text, font=self._font, fill=255)
+
+    def render(self, snapshot: Mapping[str, Any]) -> None:
+        """
+        Render a telemetry snapshot to the OLED display with labeled values and timestamp.
+
+        Args:
+            snapshot: Telemetry snapshot containing ts, water_temperature, air_temperature, and air_humidity.
         """
         if not self._should_render():
             return
 
         try:
-            self._draw.rectangle(
-                (0, 0, self._width, self._height),
-                outline=0,
-                fill=0,
-            )
+            # Clear display
+            self._draw.rectangle((0, 0, self._width, self._height), outline=0, fill=0)
 
-            values = snapshot.get("values", {})
-            timestamp_ms = snapshot.get("ts")
+            # Extract values
+            water = snapshot.get("water_temperature")
+            air = snapshot.get("air_temperature")
+            humidity = snapshot.get("air_humidity")
+            ts = snapshot.get("ts")
 
-            water_temperature = values.get("water_temperature")
+            # Column centers
+            col_centers = [21, 64, 107]
 
-            if isinstance(water_temperature, (int, float)):
-                temperature_text = f"{water_temperature:.1f}"
+            # Row Y positions
+            label_y = 0
+            value_y = 10
+            time_y = 22
+
+            # ---- Labels ----
+            labels = ["Water", "Air", "Humidity"]
+            for label, cx in zip(labels, col_centers):
+                self._draw_centered_text(label, cx, label_y)
+
+            # ---- Values ----
+            water_text = f"{water:.1f}°C" if isinstance(water, (int, float)) else "--°C"
+            air_text = f"{air:.1f}°C" if isinstance(air, (int, float)) else "--°C"
+            humidity_text = f"{humidity:.0f}%" if isinstance(humidity, (int, float)) else "--%"
+
+            values = [water_text, air_text, humidity_text]
+            for value, cx in zip(values, col_centers):
+                self._draw_centered_text(value, cx, value_y)
+
+            # ---- Timestamp ----
+            if ts:
+                # If ts is a datetime object
+                if isinstance(ts, (int, float)):
+                    ts_dt = datetime.fromtimestamp(ts / 1000)
+                else:
+                    ts_dt = ts
+                timestamp = ts_dt.strftime("%H:%M %d/%m/%Y")
             else:
-                temperature_text = "--.-"
+                timestamp = "--:-- --/--/----"
 
-            if isinstance(timestamp_ms, (int, float)):
-                dt = datetime.fromtimestamp(timestamp_ms / 1000)
-                time_text = dt.strftime("%H:%M")
-                date_text = dt.strftime("%d/%m/%Y")
-            else:
-                time_text = "--:--"
-                date_text = "--/--/----"
+            ts_width, _ = self._draw.textsize(timestamp, font=self._font)
+            ts_x = int((self._width - ts_width) / 2)
+            self._draw.text((ts_x, time_y), timestamp, font=self._font, fill=255)
 
-            left_x = 0
-            right_x = 64
-
-            self._draw.text(
-                (left_x, 0),
-                temperature_text,
-                font=self._font,
-                fill=255,
-            )
-
-            self._draw.text(
-                (right_x, 0),
-                time_text,
-                font=self._font,
-                fill=255,
-            )
-
-            self._draw.text(
-                (right_x, self._line_height),
-                date_text,
-                font=self._font,
-                fill=255,
-            )
-
+            # Update display
             self._oled.image(self._image)
             self._oled.show()
 
