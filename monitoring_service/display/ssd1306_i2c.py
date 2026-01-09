@@ -73,7 +73,6 @@ class SSD1306I2CDisplay(BaseDisplay):
         """
         Draw text centered horizontally at a specific x coordinate.
         """
-        # Use textbbox to get text width
         bbox = self._draw.textbbox((0, 0), text, font=self._font)
         text_width = bbox[2] - bbox[0]
         x = int(center_x - text_width / 2)
@@ -90,29 +89,23 @@ class SSD1306I2CDisplay(BaseDisplay):
             return
 
         try:
-            # Clear display
             self._draw.rectangle((0, 0, self._width, self._height), outline=0, fill=0)
 
-            # Extract values
             water = snapshot.get("water_temperature")
             air = snapshot.get("air_temperature")
             humidity = snapshot.get("air_humidity")
             ts = snapshot.get("ts")
 
-            # Column centers
             col_centers = [21, 64, 107]
 
-            # Row Y positions
             label_y = 0
             value_y = 10
             time_y = 22
 
-            # ---- Labels ----
             labels = ["Water", "Air", "Humidity"]
             for label, cx in zip(labels, col_centers):
                 self._draw_centered_text(label, cx, label_y)
 
-            # ---- Values ----
             water_text = f"{water:.1f}°C" if isinstance(water, (int, float)) else "--°C"
             air_text = f"{air:.1f}°C" if isinstance(air, (int, float)) else "--°C"
             humidity_text = f"{humidity:.0f}%" if isinstance(humidity, (int, float)) else "--%"
@@ -121,9 +114,7 @@ class SSD1306I2CDisplay(BaseDisplay):
             for value, cx in zip(values, col_centers):
                 self._draw_centered_text(value, cx, value_y)
 
-            # ---- Timestamp ----
             if ts:
-                # If ts is a datetime object
                 if isinstance(ts, (int, float)):
                     ts_dt = datetime.fromtimestamp(ts / 1000)
                 else:
@@ -132,11 +123,11 @@ class SSD1306I2CDisplay(BaseDisplay):
             else:
                 timestamp = "--:-- --/--/----"
 
-            ts_width, _ = self._draw.textsize(timestamp, font=self._font)
+            bbox = self._draw.textbbox((0, 0), timestamp, font=self._font)
+            ts_width = bbox[2] - bbox[0]
             ts_x = int((self._width - ts_width) / 2)
             self._draw.text((ts_x, time_y), timestamp, font=self._font, fill=255)
 
-            # Update display
             self._oled.image(self._image)
             self._oled.show()
 
