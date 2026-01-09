@@ -7,6 +7,7 @@ snapshots.
 
 import logging
 import time
+from datetime import datetime
 from typing import Mapping, Any
 
 from PIL import Image, ImageDraw, ImageFont
@@ -86,40 +87,44 @@ class SSD1306I2CDisplay(BaseDisplay):
                 fill=0,
             )
 
-            device_name = snapshot.get("device_name", "Unknown")
-            timestamp_ms = snapshot.get("ts")
             values = snapshot.get("values", {})
+            timestamp_ms = snapshot.get("ts")
 
             water_temperature = values.get("water_temperature")
 
             if isinstance(water_temperature, (int, float)):
-                temperature_text = f"{water_temperature:.1f} C"
+                temperature_text = f"{water_temperature:.1f}"
             else:
-                temperature_text = "N/A"
+                temperature_text = "--.-"
 
             if isinstance(timestamp_ms, (int, float)):
-                age_seconds = int((time.time() * 1000 - timestamp_ms) / 1000)
-                age_text = f"{age_seconds}s ago"
+                dt = datetime.fromtimestamp(timestamp_ms / 1000)
+                time_text = dt.strftime("%H:%M")
+                date_text = dt.strftime("%d/%m/%Y")
             else:
-                age_text = "--"
+                time_text = "--:--"
+                date_text = "--/--/----"
+
+            left_x = 0
+            right_x = 64
 
             self._draw.text(
-                (0, 0),
-                device_name,
+                (left_x, 0),
+                temperature_text,
                 font=self._font,
                 fill=255,
             )
 
             self._draw.text(
-                (0, self._line_height),
-                f"Water: {temperature_text}",
+                (right_x, 0),
+                time_text,
                 font=self._font,
                 fill=255,
             )
 
             self._draw.text(
-                (0, self._line_height * 2),
-                f"Updated: {age_text}",
+                (right_x, self._line_height),
+                date_text,
                 font=self._font,
                 fill=255,
             )
