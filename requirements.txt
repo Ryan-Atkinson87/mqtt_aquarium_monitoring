@@ -1,7 +1,9 @@
+adafruit-circuitpython-ssd1306==2.12.22
 adafruit-blinka==8.66.2
 adafruit-circuitpython-dht==4.0.10
 dotenv~=0.9.9
 pigpio~=1.78
+pillow==12.1.0
 psutil~=7.0.0
 pytest~=8.4.1
 python-dotenv~=1.1.1

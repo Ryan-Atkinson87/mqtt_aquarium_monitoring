@@ -9,12 +9,12 @@ import logging
 from typing import List, Mapping, Any
 
 from monitoring_service.display.logging_display import LoggingDisplay
-#from monitoring_service.display.i2c_oled import I2COLEDDisplay
+from monitoring_service.display.ssd1306_i2c import SSD1306I2CDisplay
 
 
 _DISPLAY_TYPES = {
     "logging": LoggingDisplay,
-    #"i2c_oled": I2COLEDDisplay,
+    "i2c_oled": SSD1306I2CDisplay,
 }
 
 
