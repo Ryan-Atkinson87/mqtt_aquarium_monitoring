@@ -72,13 +72,10 @@ class SSD1306I2CDisplay(BaseDisplay):
     def _draw_centered_text(self, text: str, center_x: int, y: int) -> None:
         """
         Draw text centered horizontally at a specific x coordinate.
-
-        Args:
-            text: Text to render.
-            center_x: Horizontal center position.
-            y: Vertical position.
         """
-        text_width, _ = self._draw.textsize(text, font=self._font)
+        # Use textbbox to get text width
+        bbox = self._draw.textbbox((0, 0), text, font=self._font)
+        text_width = bbox[2] - bbox[0]
         x = int(center_x - text_width / 2)
         self._draw.text((x, y), text, font=self._font, fill=255)
 
