@@ -83,16 +83,24 @@ class MonitoringAgent:
         collected data, and invokes tb_client.send_telemetry(telemetry).
         """
         self.logger.info("Reading telemetry...")
-        telemetry = self.telemetry_collector.as_dict()
-        self.logger.info(f"Collected telemetry: {telemetry}")
+
+        values = self.telemetry_collector.as_dict()
+
+        snapshot = {
+            "ts": int(time.time() * 1000),
+            "device_name": self.attributes_collector.device_name,
+            "values": values,
+        }
+
+        self.logger.info(f"Collected telemetry: {values}")
 
         self.logger.info("Sending telemetry...")
-        self.tb_client.send_telemetry(telemetry)
+        self.tb_client.send_telemetry(values)
         self.logger.info("Telemetry sent.")
 
         for display in self.displays:
             try:
-                display.render(telemetry)
+                display.render(snapshot)
             except Exception:
                 self.logger.warning(
                     "Display render failed",
