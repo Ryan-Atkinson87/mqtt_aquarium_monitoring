@@ -91,10 +91,20 @@ class SSD1306I2CDisplay(BaseDisplay):
         try:
             self._draw.rectangle((0, 0, self._width, self._height), outline=0, fill=0)
 
-            water = snapshot.get("water_temperature")
-            air = snapshot.get("air_temperature")
-            humidity = snapshot.get("air_humidity")
-            ts = snapshot.get("ts")
+            timestamp_ms = snapshot.get("ts")
+            snapshot_values = snapshot.get("values", {})
+
+            water_temperature = snapshot_values.get("water_temperature")
+            air_temperature = snapshot_values.get("air_temperature")
+            air_humidity = snapshot_values.get("air_humidity")
+
+            self._logger.info(
+                "OLED update | water_temperature=%s | air_temperature=%s | air_humidity=%s | timestamp=%s",
+                water_temperature,
+                air_temperature,
+                air_humidity,
+                timestamp_ms,
+            )
 
             col_centers = [21, 64, 107]
 
@@ -102,31 +112,31 @@ class SSD1306I2CDisplay(BaseDisplay):
             value_y = 10
             time_y = 22
 
-            labels = ["Water", "Air", "Humidity"]
+            labels = ["water_temperature", "air_temperature", "air_humidity"]
             for label, cx in zip(labels, col_centers):
                 self._draw_centered_text(label, cx, label_y)
 
-            water_text = f"{water:.1f}°C" if isinstance(water, (int, float)) else "--°C"
-            air_text = f"{air:.1f}°C" if isinstance(air, (int, float)) else "--°C"
-            humidity_text = f"{humidity:.0f}%" if isinstance(humidity, (int, float)) else "--%"
+            water_text = f"{water_temperature:.1f}°C" if isinstance(water_temperature, (int, float)) else "--°C"
+            air_text = f"{air_temperature:.1f}°C" if isinstance(air_temperature, (int, float)) else "--°C"
+            humidity_text = f"{air_humidity:.0f}%" if isinstance(air_humidity, (int, float)) else "--%"
 
             values = [water_text, air_text, humidity_text]
             for value, cx in zip(values, col_centers):
                 self._draw_centered_text(value, cx, value_y)
 
-            if ts:
-                if isinstance(ts, (int, float)):
-                    ts_dt = datetime.fromtimestamp(ts / 1000)
+            if timestamp_ms:
+                if isinstance(timestamp_ms, (int, float)):
+                    timestamp_ms_dt = datetime.fromtimestamp(timestamp_ms / 1000)
                 else:
-                    ts_dt = ts
-                timestamp = ts_dt.strftime("%H:%M %d/%m/%Y")
+                    timestamp_ms_dt = timestamp_ms
+                timestamp = timestamp_ms_dt.strftime("%H:%M %d/%m/%Y")
             else:
                 timestamp = "--:-- --/--/----"
 
             bbox = self._draw.textbbox((0, 0), timestamp, font=self._font)
-            ts_width = bbox[2] - bbox[0]
-            ts_x = int((self._width - ts_width) / 2)
-            self._draw.text((ts_x, time_y), timestamp, font=self._font, fill=255)
+            timestamp_ms_width = bbox[2] - bbox[0]
+            timestamp_ms_x = int((self._width - timestamp_ms_width) / 2)
+            self._draw.text((timestamp_ms_x, time_y), timestamp, font=self._font, fill=255)
 
             self._oled.image(self._image)
             self._oled.show()
