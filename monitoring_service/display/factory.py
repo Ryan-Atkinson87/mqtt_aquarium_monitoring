@@ -14,7 +14,7 @@ from monitoring_service.display.ssd1306_i2c import SSD1306I2CDisplay
 
 _DISPLAY_TYPES = {
     "logging": LoggingDisplay,
-    "i2c_oled": SSD1306I2CDisplay,
+    "ssd1306_i2c": SSD1306I2CDisplay,
 }
 
 
