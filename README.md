@@ -30,6 +30,12 @@ mqtt_aquarium_monitoring/
 ├── docs/
 │   └── SENSOR_INTERFACE.md
 ├── monitoring_service/
+│   ├── display/
+│   │   ├── __init__.py
+│   │   ├── base.py
+│   │   ├── factory.py
+│   │   ├── logging_display.py
+│   │   └── ssd1306_i2c.py.py
 │   ├── exceptions/
 │   │   ├── __init__.py
 │   │   └── factory_exceptions.py
@@ -56,8 +62,12 @@ mqtt_aquarium_monitoring/
 │   │   ├── __init__.py
 │   │   ├── test_hardware_dht22.py
 │   │   ├── test_hardware_ds18b20.py
-│   │   ├── test_hardware_i2c_water_level.py
+│   │   ├── test_hardware_ssd1306_i2c.py
 │   │   └── test_hardware_water_flow.py
+│   ├── not_implemented/
+│   │   ├── __init__.py
+│   │   ├── test_i2c_water_level.py
+│   │   └── test_hardware_i2c_water_level.py
 │   ├── unit/
 │   │   ├── __init__.py
 │   │   ├── test_attributes.py
@@ -65,7 +75,8 @@ mqtt_aquarium_monitoring/
 │   │   ├── test_dht22_factory.py
 │   │   ├── test_dht22_sensor.py
 │   │   ├── test_factory_build.py
-│   │   ├── test_i2c_water_level.py
+│   │   ├── test_logging_display.py
+│   │   ├── test_ssd1306_i2c.py.py
 │   │   ├── test_tbclientwrapper.py
 │   │   ├── test_telemetry_collector.py
 │   │   └── test_water_flow_sensor.py
@@ -96,6 +107,12 @@ This allows additional sensors to be added easily without modifying the core cod
 Future sensors (planned):
 - `turbidity` - water clarity sensor
 
+## Supported Displays
+
+| Display Type     | Output Type | Description        |
+|------------------|-------------|--------------------|
+| SSD1306 I2C OLED | I2C         | Small OLED Display |
+
 ## Getting Started
 
 ### Prerequisites
@@ -123,98 +140,7 @@ Future sensors (planned):
 
 3. Configure your `.env` file and `config.json`:
 
-   - `.env`:
-     ```
-     ACCESS_TOKEN=your_thingsboard_access_token
-     THINGSBOARD_SERVER=your_thingsboard_server_url_or_ip
-     ```
-   - `config.json`:
-     ```json
-     {
-      "poll_period": 60,
-      "device_name": "RasPiZero_01",
-      "mount_path": "/",
-      "log_level": "INFO",
-      "sensors": [
-        {
-          "type": "ds18b20",
-          "id": "28-0e2461862fc0",
-          "path": "/sys/bus/w1/devices/",
-          "keys": {
-            "temperature": "water_temperature"
-          },
-          "calibration": {
-            "water_temperature": { "offset": 0.0, "slope": 1.0 }
-          },
-          "ranges": {
-            "water_temperature": { "min": 0, "max": 40 }
-          },
-          "smoothing": {},
-          "interval": 5
-        },
-        {
-          "type": "DHT22",
-          "id": "gpio17",
-          "pin": 17,
-          "keys": {
-            "temperature": "air_temperature",
-            "humidity": "air_humidity"
-          },
-          "calibration": {
-            "air_temperature": { "offset": 0.0, "slope": 1.0 },
-            "air_humidity": { "offset": 0.0, "slope": 1.0 }
-          },
-          "ranges": {
-            "air_temperature": { "min": -40, "max": 80 },
-            "air_humidity": { "min": 0, "max": 100 }
-          },
-          "smoothing": {},
-          "interval": 5
-        },
-        {
-          "type": "water_level",
-          "id": "grove_water_level",
-          "bus": 1,
-          "low_address": "0x3B",
-          "high_address": "0x3C",
-          "keys": {
-            "water_level": "water_level"
-          },
-          "calibration": {
-            "water_level": { "offset": 0.0, "slope": 1.0 }
-          },
-          "ranges": {
-            "water_level": { "min": 0, "max": 100 }
-          },
-          "smoothing": {},
-          "interval": 5
-        },
-        {
-          "type": "water_flow",
-          "id": "gpio18",
-          "pin": 18,
-          "keys": {
-            "water_flow": "flow_smoothed",
-            "water_flow_instant": "flow_instant"
-          },
-          "calibration": {
-            "water_flow": { "offset": 0.0, "slope": 1.0 },
-            "water_flow_instant": { "offset": 0.0, "slope": 1.0 }
-          },
-          "ranges": {
-            "water_flow": { "min": 0, "max": 30 },
-            "water_flow_instant": { "min": 0, "max": 30 }
-          },
-          "smoothing": {},
-          "interval": 5,
-          "sample_window": 5,
-          "sliding_window_s": 3,
-          "glitch_us": 200,
-          "calibration_constant": 4.5
-        }
-      ]
-     }
-     ```
+- See `.env` and `config.json` example files.
 
 ### Running the Application
 
@@ -275,6 +201,13 @@ pytest tests/
 
 Signal pin requires pull-up; pigpio sets internal pull-up automatically
 
+#### I2C SSD1306 OLED Display
+| Pin | Connection | Notes  |
+|-----|------------|--------|
+| VCC | 3.3V       | Power  |
+| GND | GND        | Ground |
+| SDA | GPIO3      | Data   |
+| SCL | GPIO5      | Clock  |
 
 ## License
 
