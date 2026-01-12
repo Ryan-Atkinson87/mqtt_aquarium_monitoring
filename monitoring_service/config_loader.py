@@ -163,12 +163,6 @@ class ConfigLoader:
         _safe_log(self.logger, "info", f"ConfigLoader: keys loaded: {list(merged.keys())}")
         _safe_log(self.logger, "info",
                   f"ConfigLoader: sensors present: {'sensors' in merged and bool(merged.get('sensors'))}")
-        _safe_log(
-            self.logger,
-            "info",
-            f"ConfigLoader: displays present: {'displays' in merged and bool(merged.get('displays'))}",
-        )
-
         return merged
 
     def _validate_or_raise(self) -> None:

@@ -1,23 +1,8 @@
 {
-  "poll_period": 60,
+  "poll_period": 5,
   "device_name": "RasPiZero_01",
   "mount_path": "/",
   "log_level": "INFO",
-  "displays": [
-    {
-      "type": "ssd1306_i2c",
-      "enabled": true,
-      "refresh_period": 5,
-      "width": 128,
-      "height": 32,
-      "address": 60
-    },
-    {
-      "type": "logging",
-      "enabled": true,
-      "refresh_period": 5
-    }
-  ],
   "sensors": [
     {
       "type": "ds18b20",
@@ -52,13 +37,14 @@
         "air_humidity": { "min": 0, "max": 100 }
       },
       "smoothing": {},
-      "interval": 15
+      "interval": 5
     },
     {
       "type": "water_level",
       "id": "grove_water_level",
       "bus": 1,
-      "low_address": 119,
+      "low_address": "0x3B",
+      "high_address": "0x3C",
       "keys": {
         "water_level": "water_level"
       },
@@ -76,8 +62,8 @@
       "id": "gpio18",
       "pin": 18,
       "keys": {
-        "flow_smoothed": "water_flow",
-        "flow_instant": "water_flow_instant"
+        "water_flow": "flow_smoothed",
+        "water_flow_instant": "flow_instant"
       },
       "calibration": {
         "water_flow": { "offset": 0.0, "slope": 1.0 },
