@@ -30,6 +30,12 @@ mqtt_aquarium_monitoring/
 ├── docs/
 │   └── SENSOR_INTERFACE.md
 ├── monitoring_service/
+│   ├── display/
+│   │   ├── __init__.py
+│   │   ├── base.py
+│   │   ├── factory.py
+│   │   ├── logging_display.py
+│   │   └── ssd1306_i2c.py.py
 │   ├── exceptions/
 │   │   ├── __init__.py
 │   │   └── factory_exceptions.py
