@@ -64,6 +64,8 @@ class SSD1306I2CDisplay(BaseDisplay):
             self._draw = ImageDraw.Draw(self._image)
             self._font = ImageFont.load_default()
 
+            self._line_height = 10
+
             self._logger.info(
                 "SSD1306 OLED initialised (%sx%s @ 0x%X)",
                 self._width,
@@ -106,79 +108,61 @@ class SSD1306I2CDisplay(BaseDisplay):
                 }
             }
 
-        Rendering is throttled according to the configured refresh period.
+        Rendering is skipped if the configured refresh period has not elapsed.
         """
+
         if not self._should_render():
             return
 
         try:
-            self._draw.rectangle(
-                (0, 0, self._width, self._height),
-                outline=0,
-                fill=0,
+            self._draw.rectangle((0, 0, self._width, self._height), outline=0, fill=0)
+
+            timestamp_ms = snapshot.get("ts")
+            snapshot_values = snapshot.get("values", {})
+
+            water_temperature = snapshot_values.get("water_temperature")
+            air_temperature = snapshot_values.get("air_temperature")
+            air_humidity = snapshot_values.get("air_humidity")
+
+            self._logger.info(
+                "OLED update | water_temperature=%s | air_temperature=%s | air_humidity=%s | timestamp=%s",
+                water_temperature,
+                air_temperature,
+                air_humidity,
+                timestamp_ms,
             )
 
-            timestamp = snapshot.get("ts")
-            values = snapshot.get("values", {})
-
-            water_temperature = values.get("water_temperature")
-            air_temperature = values.get("air_temperature")
-            air_humidity = values.get("air_humidity")
-
             col_centers = [21, 64, 107]
+
             label_y = 0
             value_y = 10
             time_y = 22
 
-            # ---- Labels ----
-            for label, cx in zip(("Water", "Air", "Humidity"), col_centers):
+            labels = ["Water", "Air", "Humidity"]
+            for label, cx in zip(labels, col_centers):
                 self._draw_centered_text(label, cx, label_y)
 
-            # ---- Values ----
-            water_text = (
-                f"{water_temperature:.1f}°C"
-                if isinstance(water_temperature, (int, float))
-                else "--°C"
-            )
-            air_text = (
-                f"{air_temperature:.1f}°C"
-                if isinstance(air_temperature, (int, float))
-                else "--°C"
-            )
-            humidity_text = (
-                f"{air_humidity:.0f}%"
-                if isinstance(air_humidity, (int, float))
-                else "--%"
-            )
+            water_text = f"{water_temperature:.1f}°C" if isinstance(water_temperature, (int, float)) else "--°C"
+            air_text = f"{air_temperature:.1f}°C" if isinstance(air_temperature, (int, float)) else "--°C"
+            humidity_text = f"{air_humidity:.0f}%" if isinstance(air_humidity, (int, float)) else "--%"
 
-            for value, cx in zip(
-                (water_text, air_text, humidity_text),
-                col_centers,
-            ):
+            values = [water_text, air_text, humidity_text]
+            for value, cx in zip(values, col_centers):
                 self._draw_centered_text(value, cx, value_y)
 
-            # ---- Timestamp ----
-            if isinstance(timestamp, (int, float)):
-                timestamp_dt = datetime.fromtimestamp(timestamp / 1000)
-            elif isinstance(timestamp, datetime):
-                timestamp_dt = timestamp
+            if timestamp_ms:
+                if isinstance(timestamp_ms, (int, float)):
+                    timestamp_ms_dt = datetime.fromtimestamp(timestamp_ms / 1000)
+                else:
+                    timestamp_ms_dt = timestamp_ms
+                timestamp = timestamp_ms_dt.strftime("%H:%M %d/%m/%Y")
             else:
-                timestamp_dt = None
+                timestamp = "--:-- --/--/----"
 
-            timestamp_text = (
-                timestamp_dt.strftime("%H:%M %d/%m/%Y")
-                if timestamp_dt
-                else "--:-- --/--/----"
-            )
-
-            bbox = self._draw.textbbox((0, 0), timestamp_text, font=self._font)
-            ts_x = int((self._width - (bbox[2] - bbox[0])) / 2)
-            self._draw.text(
-                (ts_x, time_y),
-                timestamp_text,
-                font=self._font,
-                fill=255,
-            )
+            bbox = self._draw.textbbox((0, 0), timestamp, font=self._font)
+            timestamp_ms_width = bbox[2] - bbox[0]
+            timestamp_ms_x = int((self._width - timestamp_ms_width) / 2)
+            self._draw.text((timestamp_ms_x, time_y), timestamp, font=self._font, fill=255)
 
             self._oled.image(self._image)
             self._oled.show()
