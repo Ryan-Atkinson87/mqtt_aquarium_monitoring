@@ -8,25 +8,6 @@ Format: Keep a Changelog. Versioning: SemVer (MAJOR.MINOR.PATCH).
 - (Planned) SQLite que for offline storage and retries.
 - (Planned) HTTP implementation for sending data to places other than ThingsBoard.
 
-## [v2.2.0] - 2026-01-10
-### Added
-- Introduced a pluggable display subsystem with support for multiple displays via configuration.
-- Added `BaseDisplay` abstraction to standardise display rendering and refresh throttling.
-- Implemented `LoggingDisplay` for non-hardware testing and validation of display output.
-- Added SSD1306 I2C OLED display support using the Adafruit SSD1306 driver.
-- Display configuration now supports width, height, I2C address, refresh period, and enable flags.
-- Telemetry snapshots are now rendered with:
-    - Water temperature, air temperature, and air humidity.
-    - Rounded values with appropriate units.
-    - Human-readable timestamp of last update.
-
-### Changed
-- `agent.py` now outputs a snapshot containing timestamp and device name alongside telemetry values.
-- Removed example `config.json` and `.env` from `README.md` as there are example files for this.
-
-### Documentation
-- Updated `README.md` to match new display directory structure.
-
 ## [v2.1.1] - 2025-12-23
 ### Added
 - No new features.
