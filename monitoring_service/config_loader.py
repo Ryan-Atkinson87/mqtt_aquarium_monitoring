@@ -1,12 +1,13 @@
 """
 config_loader.py
 
-Load configuration from environment variables and a required JSON config file.
-The loader validates required values and exposes a merged configuration
-dictionary via as_dict().
+Load configuration from environment variables and an optional JSON config file.
+The loader validates required environment values and exposes a merged
+configuration dictionary via as_dict().
 
-A config.json file must be present. Startup fails if the file cannot be located
-or loaded.
+If a config.json file cannot be located or loaded, an empty configuration is
+used. Startup currently fails only if required environment variables are
+missing.
 
 Classes:
     ConfigLoader
@@ -15,6 +16,7 @@ Usage:
     loader = ConfigLoader(logger)
     config = loader.as_dict()
 """
+
 # TODO: config loader doesn't currently fail when no config is available, fix this.
 
 from __future__ import annotations
@@ -80,10 +82,10 @@ def _find_config_path(logger=None) -> Optional[Path]:
 
 def _load_json_config(path: Optional[Path], logger=None) -> Dict[str, Any]:
     """
-        Load JSON configuration from the given file path.
+    Load JSON configuration from the given file path.
 
-        Returns an empty dict if the file cannot be read.
-        """
+    Returns an empty dict if the file cannot be read.
+    """
     if not path:
         return {}
     try:
@@ -96,36 +98,37 @@ def _load_json_config(path: Optional[Path], logger=None) -> Dict[str, Any]:
 
 class ConfigLoader:
     """
-    class ConfigLoader:
-    Load and validate configuration from environment variables and a required
+    Load and validate configuration from environment variables and an optional
     JSON config file.
 
-    Environment:
+    Required environment variables:
         ACCESS_TOKEN
         THINGSBOARD_SERVER
 
     JSON:
-        A valid config.json file is required and must define core configuration
-        values such as device_name and mount_path.
+        If present, a config.json file may define core configuration values such as
+        device_name and mount_path.
 
     JSON keys (examples):
       - poll_period (int ≥ 1)
       - device_name (str)
       - mount_path (str)
       - log_level (str, default "INFO")
-      - sensors (list)  <-- merged in; not strictly required here
+      - sensors (list)
     """
+
 
     # TODO: config loader doesn't currently fail when no config is available, fix this.
 
     def __init__(self, logger):
         """
-        Initialize the loader, read environment variables, load JSON config, and
-        parse core configuration fields.
+        Initialize the loader, read environment variables, attempt to load a JSON
+        config file, and parse core configuration fields.
 
         Args:
             logger (Logger): Logger instance for diagnostic output.
         """
+
         load_dotenv()
         self.logger = logger
 
@@ -163,6 +166,12 @@ class ConfigLoader:
         _safe_log(self.logger, "info", f"ConfigLoader: keys loaded: {list(merged.keys())}")
         _safe_log(self.logger, "info",
                   f"ConfigLoader: sensors present: {'sensors' in merged and bool(merged.get('sensors'))}")
+        _safe_log(
+            self.logger,
+            "info",
+            f"ConfigLoader: displays present: {'displays' in merged and bool(merged.get('displays'))}",
+        )
+
         return merged
 
     def _validate_or_raise(self) -> None:
