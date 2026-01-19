@@ -21,7 +21,7 @@ log/
 config.json
 
 # Systemd / setup scripts
-mqtt_aquarium_monitoring.service
+trive_aquasense.service
 setup.sh
 start_monitoring.sh
 .deps_installed

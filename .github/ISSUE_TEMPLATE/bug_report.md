@@ -26,7 +26,7 @@ Paste relevant log lines (from `monitoring_service.log`) that show the error.
 - Device: [e.g. Raspberry Pi 5, Pi Zero 2 W]
 - OS: [e.g. Raspberry Pi OS Lite (Bookworm)]
 - Python version: [e.g. 3.11.7]
-- MQTT Aquarium Monitoring version: [e.g. 2.0.0]
+- Trive Aquasense version: [e.g. 2.0.0]
 - ThingsBoard version: [e.g. CE 3.6]
 
 **Sensor Configuration**
