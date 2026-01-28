@@ -76,8 +76,13 @@ def main():
     )
 
     client.connect()
-    agent.start()
-    client.disconnect()
+
+    try:
+        agent.start()
+    except KeyboardInterrupt:
+        logger.info("Shutdown requested by user.")
+    finally:
+        client.disconnect()
 
 
 if __name__ == "__main__":

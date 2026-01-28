@@ -1,10 +1,10 @@
-# MQTT Aquarium Monitoring
+# Trive Aquasense
 
 ![MIT License](https://img.shields.io/badge/license-MIT-green)
 
 ## Overview
 
-**MQTT Aquarium Monitoring** is a lightweight Python application designed for Raspberry Pi devices to monitor aquarium
+**Trive Aquasense** is a lightweight Python application designed for Raspberry Pi devices to monitor aquarium
 telemetry (temperature, light levels, turbidity etc.) and send the data to a ThingsBoard instance using MQTT. This
 program is intended for production environments where reliable telemetry reporting and logging are crucial. It is
 structured for maintainability and extensibility, with a focus on clean code, unit testing, and systemd deployment.
@@ -26,7 +26,7 @@ Full details in docs/SENSOR_INTERFACE.md
 ## Project Structure
 
 ```
-mqtt_aquarium_monitoring/
+trive_aquasense/
 ├── docs/
 │   └── SENSOR_INTERFACE.md
 ├── monitoring_service/
@@ -85,7 +85,7 @@ mqtt_aquarium_monitoring/
 ├── CHANGELOG.md
 ├── config.example.json
 ├── config.json
-├── mqtt_aquarium_monitoring_example.service
+├── trive_aquasense_example.service
 ├── README.md
 └── requirements.txt
 ```
@@ -127,8 +127,8 @@ Future sensors (planned):
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/Ryan-Atkinson87/mqtt_aquarium_monitoring.git mqtt_aquarium_monitoring
-   cd mqtt_aquarium_monitoring
+   git clone https://github.com/Ryan-Atkinson87/trive_aquasense.git trive_aquasense
+   cd trive_aquasense
    ```
 2. Set up the Python virtual environment:
 
@@ -153,9 +153,9 @@ python main.py
 Or deploy with systemd for production:
 
 ```bash
-sudo cp mqtt_aquarium_monitoring.service /etc/systemd/system/
-sudo systemctl enable mqtt_aquarium_monitoring.service
-sudo systemctl start mqtt_aquarium_monitoring.service
+sudo cp trive_aquasense.service /etc/systemd/system/
+sudo systemctl enable trive_aquasense.service
+sudo systemctl start trive_aquasense.service
 ```
 
 ### Testing
@@ -236,7 +236,7 @@ Contributions are welcome — whether it's fixing a bug, improving docs, or addi
 - Use clear, descriptive commit messages.
 - Reference any related **issues** or **milestones** in your PR.
 - If adding a new feature or bugfix, label the issue appropriately (`feature`, `bug`, `v2.x.x`, etc.).
-- Check the [Project Board](https://github.com/Ryan-Atkinson87/mqtt_aquarium_monitoring/projects) to see ongoing work and planned releases.
+- Check the [Project Board](https://github.com/Ryan-Atkinson87/trive_aquasense/projects) to see ongoing work and planned releases.
 
 ---
 

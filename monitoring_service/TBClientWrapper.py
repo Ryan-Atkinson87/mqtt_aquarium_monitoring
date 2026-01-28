@@ -12,6 +12,17 @@ Classes:
 from tb_device_mqtt import TBDeviceMqttClient
 
 
+def _safe_log(logger, level: str, message: str) -> None:
+    if logger is None:
+        return
+    fn = getattr(logger, level.lower(), None)
+    if callable(fn):
+        try:
+            fn(message)
+        except Exception:
+            pass
+
+
 class TBClientWrapper:
     """
     Wrap the ThingsBoard MQTT client and provide helper methods for connecting,
@@ -19,8 +30,8 @@ class TBClientWrapper:
     """
 
     def __init__(self, tb_server, tb_token, logger, client_class=TBDeviceMqttClient):
-        self.client = client_class(tb_server, username=tb_token)
         self.logger = logger
+        self.client = client_class(tb_server, username=tb_token)
 
     def connect(self):
         """
@@ -28,8 +39,9 @@ class TBClientWrapper:
         """
         try:
             self.client.connect()
+            _safe_log(self.logger, "info", "Connected to ThingsBoard.")
         except Exception as e:
-            self.logger.error(f"Could not connect to ThingsBoard server {e}")
+            _safe_log(self.logger, "error", f"Could not connect to ThingsBoard server: {e}")
             raise
 
     def send_telemetry(self, telemetry: dict):
@@ -39,13 +51,13 @@ class TBClientWrapper:
         Empty payloads are logged and skipped.
         """
         if not telemetry:
-            self.logger.warning("Telemetry data is empty. Skipping send.")
+            _safe_log(self.logger, "warning", "Telemetry data is empty. Skipping send.")
             return
 
         try:
             self.client.send_telemetry(telemetry)
         except Exception as e:
-            self.logger.error(f"Failed to send telemetry to ThingsBoard {e}")
+            _safe_log(self.logger, "error", f"Failed to send telemetry to ThingsBoard: {e}")
 
     def send_attributes(self, attributes: dict):
         """
@@ -54,12 +66,13 @@ class TBClientWrapper:
         Empty payloads are logged and skipped.
         """
         if not attributes:
-            self.logger.warning("Attributes data is empty. Skipping send.")
+            _safe_log(self.logger, "warning", "Attributes data is empty. Skipping send.")
             return
+
         try:
             self.client.send_attributes(attributes)
         except Exception as e:
-            self.logger.error(f"Failed to send attributes data to ThingsBoard {e}")
+            _safe_log(self.logger, "error", f"Failed to send attributes data to ThingsBoard: {e}")
 
     def disconnect(self):
         """
@@ -67,6 +80,7 @@ class TBClientWrapper:
         """
         try:
             self.client.disconnect()
+            _safe_log(self.logger, "info", "Disconnected from ThingsBoard.")
         except Exception as e:
-            self.logger.error(f"Failed to disconnect ThingsBoard {e}")
+            _safe_log(self.logger, "error", f"Failed to disconnect ThingsBoard: {e}")
             raise

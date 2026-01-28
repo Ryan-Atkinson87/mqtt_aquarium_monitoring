@@ -26,7 +26,8 @@ import json
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from dotenv import load_dotenv
+ETC_CONFIG_PATH = Path("/etc/trive_aquasense/config.json")
+DEFAULT_CONFIG_FILENAME = "config.json"
 
 
 def _safe_log(logger, level: str, msg: str) -> None:
@@ -44,42 +45,6 @@ def _safe_log(logger, level: str, msg: str) -> None:
         except Exception:
             pass
 
-
-def _project_root() -> Path:
-    """
-    Return the project root directory based on the current file location.
-    """
-    return Path(__file__).resolve().parent.parent
-
-
-def _find_config_path(logger=None) -> Optional[Path]:
-    """
-    Locate config.json based on environment variables or common fallback
-    locations. Returns the resolved path or None if not found.
-    """
-    for key in ("CONFIG_PATH", "AQUARIUM_CONFIG"):
-        env_value = os.environ.get(key)
-        if env_value:
-            path = Path(env_value).expanduser().resolve()
-            if path.is_file():
-                _safe_log(logger, "info", f"ConfigLoader: using {key}={path}")
-                return path
-            _safe_log(logger, "warning", f"ConfigLoader: {key} set but not a file: {path}")
-
-    candidates = [
-        Path.cwd() / "config.json",
-        _project_root() / "config.json",
-        _project_root() / "config" / "config.json",
-    ]
-    for candidate in candidates:
-        if candidate.is_file():
-            _safe_log(logger, "info", f"ConfigLoader: discovered config at {candidate}")
-            return candidate
-
-    _safe_log(logger, "warning", "ConfigLoader: no config.json found via env or defaults")
-    return None
-
-
 def _load_json_config(path: Optional[Path], logger=None) -> Dict[str, Any]:
     """
     Load JSON configuration from the given file path.
@@ -87,13 +52,13 @@ def _load_json_config(path: Optional[Path], logger=None) -> Dict[str, Any]:
     Returns an empty dict if the file cannot be read.
     """
     if not path:
-        return {}
+        raise FileNotFoundError("ConfigLoader: config path was not resolved")
     try:
         with open(path, "r") as file:  # <- use builtins.open so tests can mock it
             return json.load(file)
     except Exception as e:
         _safe_log(logger, "error", f"ConfigLoader: failed reading {path}: {e}")
-        return {}
+        raise
 
 
 class ConfigLoader:
@@ -129,14 +94,14 @@ class ConfigLoader:
             logger (Logger): Logger instance for diagnostic output.
         """
 
-        load_dotenv()
         self.logger = logger
 
         self.token = os.getenv("ACCESS_TOKEN")
         self.server = os.getenv("THINGSBOARD_SERVER")
 
-        self.config_path: Optional[Path] = _find_config_path(self.logger)
-        self.config: Dict[str, Any] = _load_json_config(self.config_path, self.logger)
+        # Resolve and load config.json (hard fail if missing or unreadable)
+        self.config_path = self._resolve_config_path()
+        self.config = _load_json_config(self.config_path, self.logger)
 
         self._validate_or_raise()
 
@@ -233,6 +198,31 @@ class ConfigLoader:
         except (ValueError, TypeError) as e:
             _safe_log(self.logger, "error", f"Invalid device_name: {self.config.get('device_name')} ({e})")
             raise
+
+    def _resolve_config_path(self) -> Path:
+        env_path = os.getenv("CONFIG_PATH")
+        if env_path:
+            path = Path(env_path).expanduser().resolve()
+            if path.is_file():
+                self.logger.info(f"ConfigLoader: using config from CONFIG_PATH env var: {path}")
+                return path
+            raise FileNotFoundError(f"CONFIG_PATH set but file does not exist: {path}")
+
+        if ETC_CONFIG_PATH.is_file():
+            self.logger.info(f"ConfigLoader: using config from {ETC_CONFIG_PATH}")
+            return ETC_CONFIG_PATH
+
+        project_root = Path.cwd()
+        local_path = project_root / DEFAULT_CONFIG_FILENAME
+        if local_path.is_file():
+            self.logger.warning(
+                f"ConfigLoader: using local dev config at {local_path} (NOT /etc)"
+            )
+            return local_path
+
+        raise FileNotFoundError(
+            "ConfigLoader: no config.json found via CONFIG_PATH, /etc, or project directory"
+        )
 
     def _get_mount_path(self) -> str:
         """

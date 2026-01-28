@@ -12,6 +12,9 @@ def dummy_logger():
         def warning(self, msg):
             print(f"LOG WARNING: {msg}")
 
+        def info(self, msg):
+            print(f"LOG INFO: {msg}")
+
     return DummyLogger()
 
 
