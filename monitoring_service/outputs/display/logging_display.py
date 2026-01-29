@@ -8,7 +8,7 @@ import logging
 import time
 from typing import Mapping, Any
 
-from monitoring_service.display.base import BaseDisplay
+from monitoring_service.outputs.display.base import BaseDisplay
 
 
 class LoggingDisplay(BaseDisplay):

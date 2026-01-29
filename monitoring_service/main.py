@@ -9,12 +9,12 @@ ThingsBoard client, and starts the monitoring agent.
 import logging
 from monitoring_service.config_loader import ConfigLoader
 from monitoring_service.logging_setup import setup_logging
-from monitoring_service.sensors.factory import SensorFactory
+from monitoring_service.inputs.sensors import SensorFactory
 from monitoring_service.telemetry import TelemetryCollector
 from monitoring_service.attributes import AttributesCollector
 from monitoring_service.TBClientWrapper import TBClientWrapper
 from monitoring_service.agent import MonitoringAgent
-from monitoring_service.display.factory import build_displays
+from monitoring_service.outputs.display.factory import build_displays
 
 
 def main():

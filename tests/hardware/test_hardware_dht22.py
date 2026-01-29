@@ -3,7 +3,7 @@ import time
 import platform
 import pytest
 
-from monitoring_service.sensors.factory import SensorFactory
+from monitoring_service.inputs.sensors import SensorFactory
 from monitoring_service.telemetry import TelemetryCollector
 
 pytestmark = pytest.mark.skipif(
@@ -77,7 +77,7 @@ def test_dht22_hardware_read_via_factory_once():
 
 @pytest.mark.hardware
 def test_dht22_invalid_pin_skipped_by_factory():
-    from monitoring_service.sensors.factory import SensorFactory
+    from monitoring_service.inputs.sensors import SensorFactory
 
     bad_pin = 999
     config = {

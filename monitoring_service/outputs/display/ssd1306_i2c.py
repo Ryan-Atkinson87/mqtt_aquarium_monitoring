@@ -20,7 +20,7 @@ import board
 import busio
 import adafruit_ssd1306
 
-from monitoring_service.display.base import BaseDisplay
+from monitoring_service.outputs.display.base import BaseDisplay
 
 
 class SSD1306I2CDisplay(BaseDisplay):

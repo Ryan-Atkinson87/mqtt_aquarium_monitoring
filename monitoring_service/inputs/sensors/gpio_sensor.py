@@ -6,8 +6,8 @@ validation logic.
 """
 
 from abc import ABC
-from monitoring_service.sensors.base import BaseSensor
-from monitoring_service.sensors.constants import VALID_GPIO_PINS
+from monitoring_service.inputs.sensors.base import BaseSensor
+from monitoring_service.inputs.sensors.constants import VALID_GPIO_PINS
 
 class GPIOValueError(Exception):
     """

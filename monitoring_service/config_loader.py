@@ -130,7 +130,7 @@ class ConfigLoader:
 
         _safe_log(self.logger, "info", f"ConfigLoader: keys loaded: {list(merged.keys())}")
         _safe_log(self.logger, "info",
-                  f"ConfigLoader: sensors present: {'sensors' in merged and bool(merged.get('sensors'))}")
+                  f"ConfigLoader: sensors present: {'sensors' in merged and bool(merged.get('inputs/sensors'))}")
         _safe_log(
             self.logger,
             "info",

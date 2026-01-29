@@ -1,16 +1,12 @@
 
 import time
-import collections
-import threading
 import pytest
-from unittest import mock
 
 # This test module assumes your project is importable as monitoring_service
 # and that the WaterFlowSensor lives at monitoring_service.sensors.water_flow.WaterFlowSensor
-from monitoring_service.sensors.water_flow import (
+from monitoring_service.inputs.sensors.water_flow import (
     WaterFlowSensor,
     WaterFlowInitError,
-    WaterFlowValueError,
     WaterFlowReadError,
 )
 

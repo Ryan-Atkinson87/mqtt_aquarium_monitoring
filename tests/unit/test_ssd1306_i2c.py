@@ -7,7 +7,7 @@ sys.modules["board"] = MagicMock()
 sys.modules["busio"] = MagicMock()
 sys.modules["adafruit_ssd1306"] = MagicMock()
 
-from monitoring_service.display.ssd1306_i2c import SSD1306I2CDisplay
+from monitoring_service.outputs.display.ssd1306_i2c import SSD1306I2CDisplay
 
 
 def test_ssd1306_display_init_and_render():

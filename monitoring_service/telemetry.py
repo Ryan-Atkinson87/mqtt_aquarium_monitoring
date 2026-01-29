@@ -13,7 +13,7 @@ from typing import Any
 
 import logging
 from monitoring_service import PACKAGE_LOGGER_NAME
-from monitoring_service.sensors.factory import SensorBundle
+from monitoring_service.inputs.sensors.factory import SensorBundle
 
 logger = logging.getLogger(f"{PACKAGE_LOGGER_NAME}.telemetry")
 

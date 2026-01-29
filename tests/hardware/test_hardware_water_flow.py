@@ -1,8 +1,7 @@
 import time
 import pytest
-import pigpio
 
-from monitoring_service.sensors.water_flow import (
+from monitoring_service.inputs.sensors.water_flow import (
     WaterFlowSensor,
     WaterFlowInitError,
     WaterFlowReadError,

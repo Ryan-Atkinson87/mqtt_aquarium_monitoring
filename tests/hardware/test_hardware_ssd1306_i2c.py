@@ -1,7 +1,7 @@
 import time
 import pytest
 
-from monitoring_service.display.ssd1306_i2c import SSD1306I2CDisplay
+from monitoring_service.outputs.display.ssd1306_i2c import SSD1306I2CDisplay
 
 
 @pytest.mark.hardware

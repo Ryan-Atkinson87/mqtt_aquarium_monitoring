@@ -22,7 +22,7 @@ import collections
 import threading
 from typing import Tuple, Dict
 
-from monitoring_service.sensors.gpio_sensor import GPIOSensor, GPIOValueError
+from monitoring_service.inputs.sensors.gpio_sensor import GPIOSensor, GPIOValueError
 
 class WaterFlowInitError(Exception):
     """

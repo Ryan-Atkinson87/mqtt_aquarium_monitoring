@@ -1,10 +1,8 @@
-import math
 import pytest
-from dataclasses import dataclass
 from typing import Any, Mapping
 
 from monitoring_service.telemetry import TelemetryCollector
-from monitoring_service.sensors.factory import SensorBundle
+from monitoring_service.inputs.sensors.factory import SensorBundle
 
 
 # ---------- Test doubles ----------

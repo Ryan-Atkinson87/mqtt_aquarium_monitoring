@@ -5,7 +5,7 @@ Provides an I2C-based water level sensor driver.
 """
 
 
-from monitoring_service.sensors.base import BaseSensor
+from monitoring_service.inputs.sensors.base import BaseSensor
 from smbus3 import SMBus, i2c_msg
 
 class WaterLevelInitError(Exception):

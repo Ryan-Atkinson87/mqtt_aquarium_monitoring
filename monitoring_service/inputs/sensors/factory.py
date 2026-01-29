@@ -9,9 +9,10 @@ without knowledge of driver internals.
 
 
 from typing import Optional
-from monitoring_service.sensors import ds18b20, dht22, water_flow
+from monitoring_service.inputs.sensors import dht22, water_flow
+from monitoring_service.inputs.sensors import ds18b20
 from dataclasses import dataclass, field
-from monitoring_service.sensors.base import BaseSensor
+from monitoring_service.inputs.sensors.base import BaseSensor
 from monitoring_service.exceptions import (InvalidSensorConfigError, UnknownSensorTypeError, FactoryError)
 
 # Set up logging

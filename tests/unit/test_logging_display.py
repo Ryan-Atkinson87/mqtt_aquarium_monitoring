@@ -1,7 +1,7 @@
 import logging
 import time
 
-from monitoring_service.display.logging_display import LoggingDisplay
+from monitoring_service.outputs.display.logging_display import LoggingDisplay
 
 
 def test_logging_display_renders_snapshot(caplog):

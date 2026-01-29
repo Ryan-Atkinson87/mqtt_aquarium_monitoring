@@ -26,7 +26,7 @@ class _FakeAdafruitDHT(types.ModuleType):
 
 sys.modules["adafruit_dht"] = _FakeAdafruitDHT()
 
-from monitoring_service.sensors.factory import SensorFactory, SensorBundle
+from monitoring_service.inputs.sensors.factory import SensorFactory, SensorBundle
 from monitoring_service.exceptions import InvalidSensorConfigError
 
 @pytest.fixture
@@ -107,7 +107,7 @@ def test_factory_misconfigured_required_kwargs_subset(factory, dht22_cfg_base, m
     Simulate a driver that declares REQUIRED_KWARGS containing a name not in ACCEPTED_KWARGS.
     Factory should fail fast with a clear error.
     """
-    from monitoring_service.sensors.base import BaseSensor
+    from monitoring_service.inputs.sensors.factory import BaseSensor
 
     class BadDriver(BaseSensor):
         REQUIRED_KWARGS = {"pin", "id", "missing_param"}

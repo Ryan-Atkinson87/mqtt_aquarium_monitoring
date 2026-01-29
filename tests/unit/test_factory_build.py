@@ -1,7 +1,7 @@
 import pytest
 
-from monitoring_service.sensors.factory import SensorFactory, SensorBundle
-from monitoring_service.sensors import ds18b20
+from monitoring_service.inputs.sensors.factory import SensorFactory, SensorBundle
+from monitoring_service.inputs.sensors.ds18b20 import DS18B20Sensor
 from monitoring_service.exceptions import (
     InvalidSensorConfigError,
     UnknownSensorTypeError,
@@ -41,13 +41,13 @@ def test_build_valid_id_path_present(factory, base_valid_cfg):
     assert "water_temperature" in bundle.smoothing
     assert bundle.interval == 5
     # driver constructed
-    assert isinstance(bundle.driver, ds18b20.DS18B20Sensor)
+    assert isinstance(bundle.driver, DS18B20Sensor)
 
 def test_build_valid_with_path_only(factory, base_valid_cfg):
     cfg = dict(base_valid_cfg)
     cfg.pop("id")
     bundle = factory.build(cfg)
-    assert isinstance(bundle.driver, ds18b20.DS18B20Sensor)
+    assert isinstance(bundle.driver, DS18B20Sensor)
 
 def test_build_valid_with_id_only(factory, base_valid_cfg):
     cfg = dict(base_valid_cfg)
@@ -182,5 +182,5 @@ def test_build_all_skips_invalid_and_logs(factory, base_valid_cfg, caplog):
 
 def test_register_override_warns(factory, caplog):
     with caplog.at_level("WARNING"):
-        factory.register("ds18b20", ds18b20.DS18B20Sensor)
+        factory.register("ds18b20", DS18B20Sensor)
     assert any("Overriding driver" in r.message for r in caplog.records)

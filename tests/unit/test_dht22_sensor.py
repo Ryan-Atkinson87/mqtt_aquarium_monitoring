@@ -34,12 +34,11 @@ class _FakeAdafruitDHT(types.ModuleType):
 sys.modules["adafruit_dht"] = _FakeAdafruitDHT()
 
 # Now import after fakes are in place
-from monitoring_service.sensors.dht22 import (
+from monitoring_service.inputs.sensors.dht22 import (
     DHT22Sensor,
-    DHT22ValueError,
     DHT22ReadError,
 )
-from monitoring_service.sensors.constants import VALID_GPIO_PINS
+from monitoring_service.inputs.sensors.constants import VALID_GPIO_PINS
 
 @pytest.fixture
 def sensor_ok():
@@ -48,14 +47,14 @@ def sensor_ok():
     return DHT22Sensor(id="gpio17", pin=17)
 
 def test_check_pin_rejects_bad_type():
-    from monitoring_service.sensors.dht22 import DHT22Sensor, DHT22ValueError
+    from monitoring_service.inputs.sensors.dht22 import DHT22Sensor, DHT22ValueError
     # Pin must be an int. If the factory coerces, good, but direct driver init must reject.
     with pytest.raises(DHT22ValueError):
         DHT22Sensor(id="x", pin="17")  # wrong type on purpose
 
 def test_check_pin_rejects_invalid_pin_number():
-    from monitoring_service.sensors.dht22 import DHT22Sensor, DHT22ValueError
-    from monitoring_service.sensors.constants import VALID_GPIO_PINS
+    from monitoring_service.inputs.sensors.dht22 import DHT22Sensor, DHT22ValueError
+    from monitoring_service.inputs.sensors.constants import VALID_GPIO_PINS
 
     bad_pin = max(VALID_GPIO_PINS) + 10
     with pytest.raises(DHT22ValueError):

@@ -8,8 +8,8 @@ configuration.
 import logging
 from typing import List, Mapping, Any
 
-from monitoring_service.display.logging_display import LoggingDisplay
-from monitoring_service.display.ssd1306_i2c import SSD1306I2CDisplay
+from monitoring_service.outputs.display.logging_display import LoggingDisplay
+from monitoring_service.outputs.display.ssd1306_i2c import SSD1306I2CDisplay
 
 
 _DISPLAY_TYPES = {

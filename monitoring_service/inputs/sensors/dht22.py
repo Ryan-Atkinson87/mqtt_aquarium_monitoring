@@ -6,7 +6,7 @@ Provides a sensor driver for the DHT22 temperature and humidity sensor.
 
 import adafruit_dht
 import board
-from monitoring_service.sensors.gpio_sensor import GPIOSensor, GPIOValueError
+from monitoring_service.inputs.sensors.gpio_sensor import GPIOSensor, GPIOValueError
 from typing import Any
 
 class DHT22InitError(Exception):
