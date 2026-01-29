@@ -10,11 +10,13 @@ from typing import List, Mapping, Any
 
 from monitoring_service.outputs.display.logging_display import LoggingDisplay
 from monitoring_service.outputs.display.ssd1306_i2c import SSD1306I2CDisplay
+from monitoring_service.outputs.display.waveshare_147_st7789 import Waveshare147ST7789Display
 
 
 _DISPLAY_TYPES = {
     "logging": LoggingDisplay,
     "ssd1306_i2c": SSD1306I2CDisplay,
+    "waveshare_147_st7789": Waveshare147ST7789Display,
 }
 
 
