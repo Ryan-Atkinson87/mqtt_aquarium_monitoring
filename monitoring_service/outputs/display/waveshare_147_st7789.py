@@ -192,12 +192,12 @@ class Waveshare147ST7789Display(BaseDisplay):
             red = self._rgb565(255, 0, 0)
 
             self.draw_text(5, 5, status.device_name, white)
-            self.draw_text(
-                5,
-                20,
-                "NET: OK" if status.connected else "NET: DOWN",
-                green if status.connected else red,
-            )
+            # self.draw_text(
+            #     5,
+            #     20,
+            #     "NET: OK" if status.connected else "NET: DOWN",
+            #     green if status.connected else red,
+            # )
 
             if status.water_temperature is not None:
                 self.draw_text(
