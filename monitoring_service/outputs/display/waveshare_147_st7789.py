@@ -162,11 +162,11 @@ class Waveshare147ST7789Display(BaseDisplay):
                 green if status.connected else red,
             )
 
-            if status.water_temp_c is not None:
+            if status.water_temperature is not None:
                 self.draw_text(
                     5,
                     35,
-                    f"WATER:{status.water_temp_c:.1f}C",
+                    f"WATER:{status.water_temperature:.1f}C",
                     white,
                 )
 
