@@ -58,10 +58,14 @@ class Waveshare147ST7789Display(BaseDisplay):
             return
 
         self._write_command(0x2A)
-        self._write_data(bytes([0x00, x + self.X_OFFSET, 0x00, x + self.X_OFFSET]))
+        self._write_data(
+            self._u16(x + self.X_OFFSET) + self._u16(x + self.X_OFFSET)
+        )
 
         self._write_command(0x2B)
-        self._write_data(bytes([0x00, y, 0x00, y]))
+        self._write_data(
+            self._u16(y) + self._u16(y)
+        )
 
         self._write_command(0x2C)
         self._write_data(color)
@@ -97,6 +101,10 @@ class Waveshare147ST7789Display(BaseDisplay):
             if pin not in config["pins"]:
                 raise ValueError(f"Pin config missing '{pin}'")
 
+    @staticmethod
+    def _u16(value: int) -> bytes:
+        return value.to_bytes(2, "big")
+
     def _hardware_reset(self) -> None:
         GPIO.output(self._reset_pin, GPIO.LOW)
         time.sleep(0.05)
@@ -126,17 +134,20 @@ class Waveshare147ST7789Display(BaseDisplay):
         self._write_command(0x29)
 
     def _set_window(self) -> None:
+        x_start = self.X_OFFSET
+        x_end = self.X_OFFSET + self.WIDTH - 1
+        y_start = self.Y_OFFSET
+        y_end = self.Y_OFFSET + self.HEIGHT - 1
+
         self._write_command(0x2A)
-        self._write_data(bytes([
-            0x00, self.X_OFFSET,
-            0x00, self.X_OFFSET + self.WIDTH - 1
-        ]))
+        self._write_data(
+            self._u16(x_start) + self._u16(x_end)
+        )
 
         self._write_command(0x2B)
-        self._write_data(bytes([
-            0x00, self.Y_OFFSET,
-            0x01, self.HEIGHT - 1
-        ]))
+        self._write_data(
+            self._u16(y_start) + self._u16(y_end)
+        )
 
         self._write_command(0x2C)
 
