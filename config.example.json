@@ -20,6 +20,7 @@
     {
       "type": "waveshare_147_st7789",
       "enabled": true,
+      "refresh_period": 5,
       "spi": {
         "bus": 0,
         "device": 0,
@@ -29,12 +30,8 @@
       "pins": {
         "dc": 25,
         "reset": 27,
-        "backlight": 18,
-        "cs": 8
-      },
-      "rotation": 90,
-      "color_format": "RGB565",
-      "update_interval": 5
+        "backlight": 18
+      }
     }
   ],
   "sensors": [
@@ -92,8 +89,8 @@
     },
     {
       "type": "water_flow",
-      "id": "gpio18",
-      "pin": 18,
+      "id": "gpio23",
+      "pin": 23,
       "keys": {
         "flow_smoothed": "water_flow",
         "flow_instant": "water_flow_instant"
