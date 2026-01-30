@@ -6,11 +6,10 @@ import time
 @dataclass(frozen=True)
 class DisplayStatus:
     device_name: str
-    connected: bool
-    last_publish_ok: bool
-    cpu_temp_c: Optional[float]
+    #connected: bool
+    #last_publish_ok: bool
     water_temperature: Optional[float]
-    flow_present: Optional[bool]
+    #flow_present: Optional[bool]
     timestamp_utc: float
 
     @classmethod
