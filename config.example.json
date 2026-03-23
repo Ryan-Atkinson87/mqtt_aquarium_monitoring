@@ -103,8 +103,8 @@
     },
     {
       "type": "water_flow",
-      "id": "gpio23",
-      "pin": 23,
+      "id": "gpio21",
+      "pin": 21,
       "keys": {
         "flow_smoothed": "water_flow",
         "flow_instant": "water_flow_instant"

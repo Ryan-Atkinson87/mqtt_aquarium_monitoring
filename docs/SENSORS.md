@@ -1,6 +1,7 @@
 # Sensor Reference
 
-Each sensor driver reads from hardware and returns a flat dict. This document covers wiring, config fields, and notes for each supported sensor type.
+Each sensor driver reads from hardware and returns a flat dict. This document covers wiring, config fields, and notes
+for each supported sensor type.
 
 For the driver interface contract (how sensor classes are implemented), see [SENSOR_INTERFACE.md](SENSOR_INTERFACE.md).
 
@@ -12,13 +13,16 @@ For the driver interface contract (how sensor classes are implemented), see [SEN
 
 ### Wiring
 
-| Pin  | Connection | Notes                                 |
-|------|------------|---------------------------------------|
-| VCC  | 3.3V       | Power                                 |
-| GND  | GND        | Ground                                |
+| Pin  | Connection | Notes                                |
+|------|------------|--------------------------------------|
+| VCC  | 3.3V       | Power                                |
+| GND  | GND        | Ground                               |
 | DATA | GPIO4      | Needs 4.7kΩ pull-up resistor to 3.3V |
 
-Enable 1-Wire via `raspi-config` or add `dtoverlay=w1-gpio` to `/boot/firmware/config.txt`. The sensor ID appears under `/sys/bus/w1/devices/`.
+> May need 100nF capacitor between VCC and GND.
+
+Enable 1-Wire via `raspi-config` or add `dtoverlay=w1-gpio` to `/boot/firmware/config.txt`. The sensor ID appears under
+`/sys/bus/w1/devices/`.
 
 ### Config example
 
@@ -31,10 +35,16 @@ Enable 1-Wire via `raspi-config` or add `dtoverlay=w1-gpio` to `/boot/firmware/c
     "temperature": "water_temperature"
   },
   "calibration": {
-    "water_temperature": { "offset": 0.0, "slope": 1.0 }
+    "water_temperature": {
+      "offset": 0.0,
+      "slope": 1.0
+    }
   },
   "ranges": {
-    "water_temperature": { "min": 0, "max": 40 }
+    "water_temperature": {
+      "min": 0,
+      "max": 40
+    }
   },
   "smoothing": {},
   "interval": 5,
@@ -45,8 +55,8 @@ Enable 1-Wire via `raspi-config` or add `dtoverlay=w1-gpio` to `/boot/firmware/c
 
 ### Driver-specific fields
 
-| Field  | Type   | Required | Description                              |
-|--------|--------|----------|------------------------------------------|
+| Field  | Type   | Required | Description                               |
+|--------|--------|----------|-------------------------------------------|
 | `id`   | string | Yes      | 1-Wire device ID (e.g. `28-0e2461862fc0`) |
 | `path` | string | Yes      | Path to 1-Wire devices directory          |
 
@@ -58,11 +68,13 @@ Enable 1-Wire via `raspi-config` or add `dtoverlay=w1-gpio` to `/boot/firmware/c
 
 ### Wiring
 
-| Pin  | Connection | Notes                                   |
-|------|------------|-----------------------------------------|
-| VCC  | 5V         | Power                                   |
-| GND  | GND        | Ground                                  |
+| Pin  | Connection | Notes                                  |
+|------|------------|----------------------------------------|
+| VCC  | 3.3V       | Power                                  |
+| GND  | GND        | Ground                                 |
 | DATA | GPIO17     | Requires 10kΩ pull-up resistor to 3.3V |
+
+> May need 100nF capacitor between VCC and GND.
 
 Ensure the pin number in `config.json` matches your wiring.
 
@@ -78,12 +90,24 @@ Ensure the pin number in `config.json` matches your wiring.
     "humidity": "air_humidity"
   },
   "calibration": {
-    "air_temperature": { "offset": 0.0, "slope": 1.0 },
-    "air_humidity": { "offset": 0.0, "slope": 1.0 }
+    "air_temperature": {
+      "offset": 0.0,
+      "slope": 1.0
+    },
+    "air_humidity": {
+      "offset": 0.0,
+      "slope": 1.0
+    }
   },
   "ranges": {
-    "air_temperature": { "min": -40, "max": 80 },
-    "air_humidity": { "min": 0, "max": 100 }
+    "air_temperature": {
+      "min": -40,
+      "max": 80
+    },
+    "air_humidity": {
+      "min": 0,
+      "max": 100
+    }
   },
   "smoothing": {},
   "interval": 15,
@@ -94,44 +118,59 @@ Ensure the pin number in `config.json` matches your wiring.
 
 ### Driver-specific fields
 
-| Field | Type | Required | Description              |
-|-------|------|----------|--------------------------|
-| `pin` | int  | Yes      | BCM GPIO pin number      |
+| Field | Type | Required | Description         |
+|-------|------|----------|---------------------|
+| `pin` | int  | Yes      | BCM GPIO pin number |
 
 ---
 
 ## Water Flow Sensor (Turbine Type)
 
-**Telemetry keys:** `water_flow` (l/min, EMA-smoothed), `water_flow_instant` (l/min, instantaneous) | **Protocol:** GPIO pulse counting via pigpio
+**Telemetry keys:** `water_flow` (l/min, EMA-smoothed), `water_flow_instant` (l/min, instantaneous) | **Protocol:** GPIO
+pulse counting via pigpio
 
 ### Wiring
 
-| Sensor Pin | Pi Connection | Notes      |
-|------------|---------------|------------|
-| VCC        | 5V            | Power      |
-| GND        | GND           | Ground     |
-| Signal     | GPIO23        | Signal pin |
+| Sensor Pin | Pi Connection | Notes                                  |
+|------------|---------------|----------------------------------------|
+| VCC        | 5V            | Power                                  |
+| GND        | GND           | Ground                                 |
+| Signal     | GPIO21        | Requires 10kΩ pull-up resistor to 3.3V |
 
-The signal pin uses pigpio's internal pull-up — no external resistor required. The `pigpiod` daemon must be running.
+> May need 100nF capacitor between VCC and GND.
+
+10k resistor between GPIO and 3.3V. The `pigpiod` daemon must be running.
 
 ### Config example
 
 ```json
 {
   "type": "water_flow",
-  "id": "gpio23",
-  "pin": 23,
+  "id": "gpio21",
+  "pin": 21,
   "keys": {
     "flow_smoothed": "water_flow",
     "flow_instant": "water_flow_instant"
   },
   "calibration": {
-    "water_flow": { "offset": 0.0, "slope": 1.0 },
-    "water_flow_instant": { "offset": 0.0, "slope": 1.0 }
+    "water_flow": {
+      "offset": 0.0,
+      "slope": 1.0
+    },
+    "water_flow_instant": {
+      "offset": 0.0,
+      "slope": 1.0
+    }
   },
   "ranges": {
-    "water_flow": { "min": 0, "max": 30 },
-    "water_flow_instant": { "min": 0, "max": 30 }
+    "water_flow": {
+      "min": 0,
+      "max": 30
+    },
+    "water_flow_instant": {
+      "min": 0,
+      "max": 30
+    }
   },
   "smoothing": {},
   "precision": {
@@ -189,10 +228,16 @@ Enable I2C via `raspi-config`. Verify with `i2cdetect -y 1`.
     "water_level": "water_level"
   },
   "calibration": {
-    "water_level": { "offset": 0.0, "slope": 1.0 }
+    "water_level": {
+      "offset": 0.0,
+      "slope": 1.0
+    }
   },
   "ranges": {
-    "water_level": { "min": 0, "max": 100 }
+    "water_level": {
+      "min": 0,
+      "max": 100
+    }
   },
   "smoothing": {},
   "interval": 5
@@ -201,10 +246,10 @@ Enable I2C via `raspi-config`. Verify with `i2cdetect -y 1`.
 
 ### Driver-specific fields
 
-| Field         | Type | Required | Description                       |
-|---------------|------|----------|-----------------------------------|
-| `bus`         | int  | Yes      | I2C bus number                    |
-| `low_address` | int  | Yes      | I2C address of the sensor         |
+| Field         | Type | Required | Description               |
+|---------------|------|----------|---------------------------|
+| `bus`         | int  | Yes      | I2C bus number            |
+| `low_address` | int  | Yes      | I2C address of the sensor |
 
 ---
 
